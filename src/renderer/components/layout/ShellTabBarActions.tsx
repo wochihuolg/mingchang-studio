@@ -3,6 +3,7 @@ import { usePreference } from '@data/hooks/usePreference'
 import { loggerService } from '@logger'
 import { isLinux, isWin } from '@renderer/config/constant'
 import { useTheme } from '@renderer/context/ThemeProvider'
+import { CommandTooltip } from '@renderer/features/command'
 import { getThemeModeLabelKey } from '@renderer/i18n/label'
 import { openSettingsWindow } from '@renderer/services/SettingsWindowService'
 import { formatErrorMessage } from '@renderer/utils/error'
@@ -13,7 +14,7 @@ import WindowControls from '../WindowControls'
 
 const logger = loggerService.withContext('ShellTabBarActions')
 
-export function useShellTabBarLayout(isDetached: boolean) {
+export function useShellTabBarLayout(isDetached = false) {
   const [useSystemTitleBar] = usePreference('app.use_system_title_bar')
   const hasWindowControls = isWin || (isLinux && !useSystemTitleBar)
 
@@ -63,13 +64,15 @@ export function ShellTabBarActions({ isDetached = false }: { isDetached?: boolea
                 <ThemeIcon size={16} strokeWidth={1.8} />
               </button>
             </Tooltip>
-            <button
-              type="button"
-              aria-label={t('settings.title')}
-              onClick={handleSettingsClick}
-              className="flex h-8 w-8 items-center justify-center rounded-[8px] text-foreground/80 transition-colors hover:bg-[rgba(107,114,128,0.12)] hover:text-foreground">
-              <Settings size={16} strokeWidth={1.8} />
-            </button>
+            <CommandTooltip command="app.settings.open" label={t('settings.title')} placement="bottom" delay={800}>
+              <button
+                type="button"
+                aria-label={t('settings.title')}
+                onClick={handleSettingsClick}
+                className="flex h-8 w-8 items-center justify-center rounded-[8px] text-foreground/80 transition-colors hover:bg-[rgba(107,114,128,0.12)] hover:text-foreground">
+                <Settings size={16} strokeWidth={1.8} />
+              </button>
+            </CommandTooltip>
           </div>
         </div>
       )}

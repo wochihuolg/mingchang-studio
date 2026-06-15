@@ -21,7 +21,8 @@ vi.mock('@logger', () => ({
 }))
 
 vi.mock('@cherrystudio/ui', () => ({
-  Tooltip: ({ children }: { children: React.ReactNode }) => children
+  Tooltip: ({ children }: { children: React.ReactNode }) => children,
+  Kbd: ({ children }: { children?: React.ReactNode }) => children
 }))
 
 vi.mock('@data/hooks/usePreference', () => ({
@@ -33,6 +34,10 @@ vi.mock('@data/hooks/usePreference', () => ({
 
 vi.mock('@renderer/context/ThemeProvider', () => ({
   useTheme: () => ({ settedTheme: 'light', toggleTheme: vi.fn() })
+}))
+
+vi.mock('@renderer/features/command', () => ({
+  CommandTooltip: ({ children }: { children?: React.ReactNode }) => children
 }))
 
 vi.mock('@renderer/i18n/label', () => ({

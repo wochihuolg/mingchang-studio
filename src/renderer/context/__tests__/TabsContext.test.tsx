@@ -1,17 +1,21 @@
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest'
 
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import type * as RouteTitle from '@renderer/utils/routeTitle'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { useEffect, useRef } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const { languageState, translate } = vi.hoisted(() => {
   const translations: Record<string, Record<string, string>> = {
     'en-US': {
-      'title.home': 'Home',
+      'agent.sidebar_title': 'Agent',
+      'agent.session.group.conversation': 'Chat',
       'title.paintings': 'Paintings'
     },
     'zh-CN': {
-      'title.home': '首页',
+      'agent.sidebar_title': '任务',
+      'agent.session.group.conversation': '对话',
       'title.paintings': '绘画'
     }
   }
@@ -21,6 +25,16 @@ const { languageState, translate } = vi.hoisted(() => {
     translate: (key: string) => translations[languageState.language]?.[key] ?? key
   }
 })
+
+vi.mock('@logger', () => ({
+  loggerService: {
+    withContext: () => ({
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn()
+    })
+  }
+}))
 
 vi.mock('@renderer/i18n', () => ({
   default: {
@@ -38,10 +52,6 @@ vi.mock('react-i18next', () => ({
 }))
 
 vi.mock('@renderer/data/hooks/useCache', () => {
-  // Return stable references across renders. With a fresh [] every render the
-  // `tabs` useMemo would recompute unconditionally, masking whether
-  // `i18n.language` is actually wired into its dependency array — so the
-  // language-flip assertion below would pass even if the dep were dropped.
   const pinnedTabs: unknown[] = []
   const setPinnedTabs = vi.fn()
   return {
@@ -49,17 +59,37 @@ vi.mock('@renderer/data/hooks/useCache', () => {
   }
 })
 
+vi.mock('@renderer/utils/routeTitle', async () => {
+  const actual = await vi.importActual<typeof RouteTitle>('@renderer/utils/routeTitle')
+  const titleKeys: Record<string, string> = {
+    '/app/agents': 'agent.sidebar_title',
+    '/app/chat': 'agent.session.group.conversation',
+    '/app/paintings': 'title.paintings'
+  }
+  const getBasePath = (pathname: string) => {
+    const segments = pathname.split('/').filter(Boolean)
+    return segments[0] === 'app' && segments.length >= 2 ? '/' + segments.slice(0, 2).join('/') : pathname
+  }
+
+  return {
+    ...actual,
+    getDefaultRouteTitle: (url: string) => {
+      const pathname = new URL(url, 'https://www.cherry-ai.com/').pathname
+      const key = titleKeys[pathname] ?? titleKeys[getBasePath(pathname)]
+      return key ? translate(key) : pathname
+    }
+  }
+})
+
 import { TabsProvider, useTabsContext } from '../TabsContext'
 
-function TabsProbe() {
+function LocalizedTabsProbe() {
   const { openTab, tabs } = useTabsContext()
-  const homeTab = tabs.find((tab) => tab.id === 'home')
   const paintingsTab = tabs.find((tab) => tab.id === 'paintings-tab')
   const customTab = tabs.find((tab) => tab.id === 'mini-app-tab')
 
   return (
     <>
-      <div data-testid="home-tab-title">{homeTab?.title}</div>
       <div data-testid="paintings-tab-title">{paintingsTab?.title}</div>
       <div data-testid="custom-tab-title">{customTab?.title}</div>
       <button
@@ -87,23 +117,35 @@ function TabsProbe() {
   )
 }
 
-describe('TabsContext language refresh', () => {
+function TabTitleWriter() {
+  const { tabs, updateTab } = useTabsContext()
+  const didUpdateRef = useRef(false)
+
+  useEffect(() => {
+    if (didUpdateRef.current) return
+    didUpdateRef.current = true
+    updateTab('home', { title: 'Session title', icon: 'icon:spark' })
+  }, [updateTab])
+
+  return <div data-testid="home-title">{tabs.find((tab) => tab.id === 'home')?.title}</div>
+}
+
+afterEach(() => {
+  cleanup()
+  vi.clearAllMocks()
+})
+
+describe('TabsContext', () => {
   beforeEach(() => {
     languageState.language = 'en-US'
-  })
-
-  afterEach(() => {
-    cleanup()
   })
 
   it('refreshes localized route tab titles when the app language changes without replacing custom titles', () => {
     const { rerender } = render(
       <TabsProvider>
-        <TabsProbe />
+        <LocalizedTabsProbe />
       </TabsProvider>
     )
-
-    expect(screen.getByTestId('home-tab-title')).toHaveTextContent('Home')
 
     fireEvent.click(screen.getByRole('button', { name: 'Open paintings tab' }))
     expect(screen.getByTestId('paintings-tab-title')).toHaveTextContent('Paintings')
@@ -114,12 +156,30 @@ describe('TabsContext language refresh', () => {
     languageState.language = 'zh-CN'
     rerender(
       <TabsProvider>
-        <TabsProbe />
+        <LocalizedTabsProbe />
       </TabsProvider>
     )
 
-    expect(screen.getByTestId('home-tab-title')).toHaveTextContent('首页')
     expect(screen.getByTestId('paintings-tab-title')).toHaveTextContent('绘画')
     expect(screen.getByTestId('custom-tab-title')).toHaveTextContent('Weather App')
+  })
+
+  it('preserves page-owned titles for the fixed home conversation tab', async () => {
+    render(
+      <TabsProvider
+        initialDefaultTab={{
+          id: 'home',
+          type: 'route',
+          url: '/app/agents',
+          title: '',
+          lastAccessTime: Date.now(),
+          isDormant: false
+        }}
+        includePinnedTabs={false}>
+        <TabTitleWriter />
+      </TabsProvider>
+    )
+
+    await waitFor(() => expect(screen.getByTestId('home-title')).toHaveTextContent('Session title'))
   })
 })
