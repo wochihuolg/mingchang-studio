@@ -4,6 +4,7 @@ import { SubWindowControls } from '@renderer/components/layout/SubWindowControls
 import { SubWindowTitle } from '@renderer/components/layout/SubWindowTitle'
 import { TabRouter } from '@renderer/components/layout/TabRouter'
 import MiniAppTabsPool from '@renderer/components/MiniApp/MiniAppTabsPool'
+import { isMac } from '@renderer/config/constant'
 import { clearTabInstanceMetadata } from '@renderer/config/tabInstanceMetadata'
 import { type WindowFrame, WindowFrameProvider } from '@renderer/context/WindowFrameContext'
 import { useTabs } from '@renderer/hooks/useTabs'
@@ -90,7 +91,9 @@ export const SubWindowAppShell = () => {
       <div className="flex h-screen w-screen flex-col overflow-hidden bg-background text-foreground">
         {showFallbackTitleBar && <SubWindowTitleBar />}
         {/* Content Area - Multi MemoryRouter Architecture */}
-        <main className="relative flex-1 overflow-hidden bg-background">
+        <main
+          data-page-side-panel-root={isMac ? undefined : 'true'}
+          className="relative flex-1 overflow-hidden bg-background">
           {/* Route Tabs: Only render non-dormant tabs */}
           {tabs
             .filter((t) => t.type === 'route' && !t.isDormant)
