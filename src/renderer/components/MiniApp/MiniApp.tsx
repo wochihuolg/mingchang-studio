@@ -15,6 +15,7 @@ import { useTranslation } from 'react-i18next'
 interface Props {
   app: MiniApp
   onClick?: () => void
+  onEditCustom?: (app: MiniApp) => void
   size?: number
   isLast?: boolean
   variant?: 'default' | 'launchpad'
@@ -22,7 +23,7 @@ interface Props {
 
 const logger = loggerService.withContext('App')
 
-const MiniApp: FC<Props> = ({ app, onClick, size = 60, isLast, variant = 'default' }) => {
+const MiniApp: FC<Props> = ({ app, onClick, onEditCustom, size = 60, isLast, variant = 'default' }) => {
   const { t } = useTranslation()
   const {
     miniApps,
@@ -166,9 +167,12 @@ const MiniApp: FC<Props> = ({ app, onClick, size = 60, isLast, variant = 'defaul
         <ContextMenuItem onSelect={handleTogglePin}>{togglePinLabel}</ContextMenuItem>
         {!isPinned && <ContextMenuItem onSelect={handleHide}>{t('miniApp.sidebar.hide.title')}</ContextMenuItem>}
         {app.presetMiniAppId == null && (
-          <ContextMenuItem variant="destructive" onSelect={handleRemoveCustom}>
-            {t('miniApp.sidebar.remove_custom.title')}
-          </ContextMenuItem>
+          <>
+            {onEditCustom && <ContextMenuItem onSelect={() => onEditCustom(app)}>{t('common.edit')}</ContextMenuItem>}
+            <ContextMenuItem variant="destructive" onSelect={handleRemoveCustom}>
+              {t('common.delete')}
+            </ContextMenuItem>
+          </>
         )}
       </ContextMenuContent>
     </ContextMenu>
