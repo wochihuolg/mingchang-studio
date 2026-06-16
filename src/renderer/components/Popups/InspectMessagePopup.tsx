@@ -18,7 +18,7 @@ interface ShowParams {
 }
 
 interface Props extends ShowParams {
-  resolve: (data: any) => void
+  resolve: () => void
 }
 
 const InspectMessagePopupContainer: React.FC<Props> = ({ title, message, blocks, parts, resolve }) => {
@@ -26,7 +26,7 @@ const InspectMessagePopupContainer: React.FC<Props> = ({ title, message, blocks,
   const [open, setOpen] = useState(true)
   const { t } = useTranslation()
   const closeTopView = useTopViewClose({ resolve, setOpen, topViewKey: TopViewKey })
-  const closePopup = () => closeTopView({})
+  const closePopup = () => closeTopView()
 
   const onOpenChange = (next: boolean) => {
     if (!next) {
@@ -78,7 +78,7 @@ export default class InspectMessagePopup {
     TopView.hide(TopViewKey)
   }
   static show(props: ShowParams) {
-    return new Promise<any>((resolve) => {
+    return new Promise<void>((resolve) => {
       TopView.show(<InspectMessagePopupContainer {...props} resolve={resolve} />, TopViewKey)
     })
   }

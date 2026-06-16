@@ -7,14 +7,14 @@ import { TopView } from '../TopView'
 import { useTopViewClose } from './useTopViewClose'
 
 interface Props {
-  resolve: (data: any) => void
+  resolve: () => void
 }
 
 const PopupContainer: React.FC<Props> = ({ resolve }) => {
   const [open, setOpen] = useState(true)
   const { t } = useTranslation()
   const closeTopView = useTopViewClose({ resolve, setOpen, topViewKey: 'SearchPopup' })
-  const closePopup = () => closeTopView({})
+  const closePopup = () => closeTopView()
 
   const onOpenChange = (next: boolean) => {
     if (!next) {
@@ -44,7 +44,7 @@ export default class SearchPopup {
     TopView.hide('SearchPopup')
   }
   static show() {
-    return new Promise<any>((resolve) => {
+    return new Promise<void>((resolve) => {
       TopView.show(<PopupContainer resolve={resolve} />, 'SearchPopup')
     })
   }
