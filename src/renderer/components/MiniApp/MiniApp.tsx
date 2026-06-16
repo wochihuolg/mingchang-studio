@@ -1,4 +1,4 @@
-import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from '@cherrystudio/ui'
+import { ConfirmDialog, ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from '@cherrystudio/ui'
 import { cn } from '@cherrystudio/ui/lib/utils'
 import { loggerService } from '@logger'
 import MiniAppIcon from '@renderer/components/Icons/MiniAppIcon'
@@ -10,6 +10,7 @@ import { useTabs } from '@renderer/hooks/useTabs'
 import { ErrorCode, isDataApiError, toDataApiError } from '@shared/data/api'
 import type { MiniApp } from '@shared/data/types/miniApp'
 import type { FC, KeyboardEvent } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 interface Props {
@@ -36,6 +37,8 @@ const MiniApp: FC<Props> = ({ app, onClick, onEditCustom, size = 60, isLast, var
     removeCustomMiniApp
   } = useMiniApps()
   const { openTab } = useTabs()
+  const [removeConfirmOpen, setRemoveConfirmOpen] = useState(false)
+  const [removingCustom, setRemovingCustom] = useState(false)
   const isPinned = pinned.some((p) => p.appId === app.appId)
   const isVisible = miniApps.some((m) => m.appId === app.appId)
   // Pinned apps should always be visible regardless of region/locale filtering
@@ -102,6 +105,7 @@ const MiniApp: FC<Props> = ({ app, onClick, onEditCustom, size = 60, isLast, var
   }
 
   const handleRemoveCustom = async () => {
+    setRemovingCustom(true)
     try {
       await removeCustomMiniApp(app.appId)
       window.toast.success(t('settings.miniApps.custom.remove_success'))
@@ -112,6 +116,8 @@ const MiniApp: FC<Props> = ({ app, onClick, onEditCustom, size = 60, isLast, var
         window.toast.error(t('settings.miniApps.custom.remove_error'))
       }
       logger.error('Failed to remove custom mini app:', error as Error)
+    } finally {
+      setRemovingCustom(false)
     }
   }
 
@@ -122,60 +128,73 @@ const MiniApp: FC<Props> = ({ app, onClick, onEditCustom, size = 60, isLast, var
   const isLaunchpad = variant === 'launchpad'
 
   return (
-    <ContextMenu>
-      <ContextMenuTrigger asChild>
-        <div
-          className={cn(
-            'flex cursor-pointer flex-col items-center justify-center overflow-hidden outline-none',
-            isLaunchpad
-              ? 'min-h-[104px] w-[92px] bg-transparent pt-1 hover:[&_.mini-app-icon-frame]:bg-ghost-hover focus-visible:[&_.mini-app-icon-frame]:border-border-active focus-visible:[&_.mini-app-icon-frame]:shadow-[0_0_0_1px_color-mix(in_srgb,var(--color-ring)_30%,transparent)]'
-              : 'min-h-[85px]'
-          )}
-          onClick={handleClick}
-          {...activationProps}>
+    <>
+      <ContextMenu>
+        <ContextMenuTrigger asChild>
           <div
             className={cn(
-              'mini-app-icon-frame relative flex items-center justify-center',
+              'flex cursor-pointer flex-col items-center justify-center overflow-hidden outline-none',
               isLaunchpad &&
-                'size-[58px] rounded-[14px] border border-border-subtle bg-transparent transition-[border-color,background-color] duration-[160ms] ease-in-out motion-reduce:transition-none'
-            )}>
-            <MiniAppIcon size={size} app={app} appearance={isLaunchpad ? 'plain' : 'avatar'} />
-            {isOpened && (
-              <div
-                className={cn(
-                  'absolute rounded-full bg-background',
-                  isLaunchpad
-                    ? '-right-[3px] -bottom-[3px] p-[3px] shadow-[0_0_0_1px_var(--color-border-subtle)]'
-                    : '-right-0.5 -bottom-0.5 p-0.5'
-                )}>
-                <IndicatorLight color="#22c55e" size={6} animation={!isActive} />
-              </div>
+                'min-h-[104px] w-[92px] bg-transparent pt-1 hover:[&_.mini-app-icon-frame]:bg-ghost-hover focus-visible:[&_.mini-app-icon-frame]:border-border-active focus-visible:[&_.mini-app-icon-frame]:shadow-[0_0_0_1px_color-mix(in_srgb,var(--color-ring)_30%,transparent)]',
+              !isLaunchpad && 'min-h-[85px]'
             )}
+            onClick={handleClick}
+            {...activationProps}>
+            <div
+              className={cn(
+                'mini-app-icon-frame relative flex items-center justify-center',
+                isLaunchpad &&
+                  'size-[58px] rounded-[14px] border border-border-subtle bg-transparent transition-[border-color,background-color] duration-[160ms] ease-in-out motion-reduce:transition-none'
+              )}>
+              <MiniAppIcon size={size} app={app} appearance={isLaunchpad ? 'plain' : 'avatar'} />
+              {isOpened && (
+                <div
+                  className={cn(
+                    'absolute rounded-full bg-background',
+                    isLaunchpad
+                      ? '-right-[3px] -bottom-[3px] p-[3px] shadow-[0_0_0_1px_var(--color-border-subtle)]'
+                      : '-right-0.5 -bottom-0.5 p-0.5'
+                  )}>
+                  <IndicatorLight color="#22c55e" size={6} animation={!isActive} />
+                </div>
+              )}
+            </div>
+            <div
+              className={cn(
+                'w-full select-none text-center text-foreground-secondary',
+                isLaunchpad
+                  ? 'mt-2 min-h-9 max-w-[92px] overflow-hidden whitespace-normal text-[13px] leading-[18px] [-webkit-box-orient:vertical] [-webkit-line-clamp:2] [display:-webkit-box] [overflow-wrap:anywhere]'
+                  : 'mt-[5px] max-w-20 text-xs leading-normal'
+              )}>
+              {isLaunchpad ? displayName : <MarqueeText>{displayName}</MarqueeText>}
+            </div>
           </div>
-          <div
-            className={cn(
-              'w-full select-none text-center text-foreground-secondary',
-              isLaunchpad
-                ? 'mt-2 min-h-9 max-w-[92px] overflow-hidden whitespace-normal text-[13px] leading-[18px] [-webkit-box-orient:vertical] [-webkit-line-clamp:2] [display:-webkit-box] [overflow-wrap:anywhere]'
-                : 'mt-[5px] max-w-20 text-xs leading-normal'
-            )}>
-            {isLaunchpad ? displayName : <MarqueeText>{displayName}</MarqueeText>}
-          </div>
-        </div>
-      </ContextMenuTrigger>
-      <ContextMenuContent>
-        <ContextMenuItem onSelect={handleTogglePin}>{togglePinLabel}</ContextMenuItem>
-        {!isPinned && <ContextMenuItem onSelect={handleHide}>{t('miniApp.sidebar.hide.title')}</ContextMenuItem>}
-        {app.presetMiniAppId == null && (
-          <>
-            {onEditCustom && <ContextMenuItem onSelect={() => onEditCustom(app)}>{t('common.edit')}</ContextMenuItem>}
-            <ContextMenuItem variant="destructive" onSelect={handleRemoveCustom}>
-              {t('common.delete')}
-            </ContextMenuItem>
-          </>
-        )}
-      </ContextMenuContent>
-    </ContextMenu>
+        </ContextMenuTrigger>
+        <ContextMenuContent>
+          <ContextMenuItem onSelect={handleTogglePin}>{togglePinLabel}</ContextMenuItem>
+          {!isPinned && <ContextMenuItem onSelect={handleHide}>{t('miniApp.sidebar.hide.title')}</ContextMenuItem>}
+          {app.presetMiniAppId == null && (
+            <>
+              {onEditCustom && <ContextMenuItem onSelect={() => onEditCustom(app)}>{t('common.edit')}</ContextMenuItem>}
+              <ContextMenuItem variant="destructive" onSelect={() => setRemoveConfirmOpen(true)}>
+                {t('common.delete')}
+              </ContextMenuItem>
+            </>
+          )}
+        </ContextMenuContent>
+      </ContextMenu>
+      <ConfirmDialog
+        open={removeConfirmOpen}
+        onOpenChange={setRemoveConfirmOpen}
+        title={t('settings.miniApps.custom.remove_confirm_title')}
+        description={t('settings.miniApps.custom.remove_confirm_description', { name: displayName })}
+        confirmText={t('common.delete')}
+        cancelText={t('common.cancel')}
+        destructive
+        confirmLoading={removingCustom}
+        onConfirm={handleRemoveCustom}
+      />
+    </>
   )
 }
 
