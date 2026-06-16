@@ -166,6 +166,7 @@ export class OpenClawService extends BaseService {
   private gatewayStatus: GatewayStatus = 'stopped'
   private gatewayPort: number = DEFAULT_GATEWAY_PORT
   private gatewayAuthToken: string = ''
+  private installPromise: Promise<OperationResult> | null = null
 
   public get gatewayUrl(): string {
     return `ws://127.0.0.1:${this.gatewayPort}/ws`
@@ -308,6 +309,19 @@ export class OpenClawService extends BaseService {
    * Uses gitcode.com mirror for China users, GitHub releases for others.
    */
   public async install(): Promise<OperationResult> {
+    if (this.installPromise) {
+      return this.installPromise
+    }
+
+    this.installPromise = this.installInternal()
+    try {
+      return await this.installPromise
+    } finally {
+      this.installPromise = null
+    }
+  }
+
+  private async installInternal(): Promise<OperationResult> {
     try {
       this.sendInstallProgress('Checking download source...')
       const useMirror = await isUserInChina()
