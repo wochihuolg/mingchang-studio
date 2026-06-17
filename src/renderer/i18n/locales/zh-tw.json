@@ -395,6 +395,9 @@
           "failed": "無法重新排序工作階段"
         }
       },
+      "tool": {
+        "disabled": "{{toolName}} 工具已被此智慧體停用。"
+      },
       "update": {
         "error": {
           "failed": "無法更新工作階段"
@@ -6116,6 +6119,10 @@
           "label": "模型名稱",
           "placeholder": "選填，例如 GPT-4",
           "tooltip": "例如 GPT-4"
+        },
+        "section": {
+          "capabilities": "模型特性",
+          "pricing": "模型定價"
         },
         "supported_text_delta": {
           "label": "支援增量文字輸出",
