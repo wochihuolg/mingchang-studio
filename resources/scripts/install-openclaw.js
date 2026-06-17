@@ -138,8 +138,8 @@ async function downloadOpenClawBinary(platform, arch, version = DEFAULT_VERSION,
   const binDir = path.join(os.homedir(), '.cherrystudio', 'bin')
   fs.mkdirSync(binDir, { recursive: true })
 
-  const tempdir = os.tmpdir()
-  const tempFilename = path.join(tempdir, packageName)
+  const tempInstallDir = fs.mkdtempSync(path.join(os.tmpdir(), 'openclaw-install-'))
+  const tempFilename = path.join(tempInstallDir, packageName)
   const isTarGz = packageName.endsWith('.tar.gz')
 
   try {
@@ -150,7 +150,7 @@ async function downloadOpenClawBinary(platform, arch, version = DEFAULT_VERSION,
     console.log(`Extracting ${packageName} to ${binDir}...`)
 
     if (isTarGz) {
-      const tempExtractDir = path.join(tempdir, `openclaw-extract-${Date.now()}`)
+      const tempExtractDir = path.join(tempInstallDir, 'extract')
       fs.mkdirSync(tempExtractDir, { recursive: true })
 
       execSync(`tar -xzf "${tempFilename}" -C "${tempExtractDir}"`, { stdio: 'inherit' })
@@ -186,7 +186,6 @@ async function downloadOpenClawBinary(platform, arch, version = DEFAULT_VERSION,
       }
 
       findAndMoveFiles(tempExtractDir)
-      fs.rmSync(tempExtractDir, { recursive: true })
     } else {
       // Use StreamZip for zip files (Windows)
       const zip = new StreamZip.async({ file: tempFilename })
@@ -205,7 +204,6 @@ async function downloadOpenClawBinary(platform, arch, version = DEFAULT_VERSION,
       await zip.close()
     }
 
-    fs.unlinkSync(tempFilename)
     console.log(`Successfully installed openclaw ${version} for ${platform}-${arch}`)
     return 0
   } catch (error) {
@@ -229,6 +227,8 @@ async function downloadOpenClawBinary(platform, arch, version = DEFAULT_VERSION,
     }
 
     return retCode
+  } finally {
+    fs.rmSync(tempInstallDir, { recursive: true, force: true })
   }
 }
 
