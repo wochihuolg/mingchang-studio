@@ -32,6 +32,7 @@ import {
 import * as z from 'zod'
 
 import { isAgentSessionTopic } from './agentSession/topic'
+import { resolveMediaCapabilities } from './messages/messageCapabilities'
 import { resolveUIMessageFileUrls } from './messages/messageConverter'
 import { resolveImageTransport } from './provider/custom/imageTransportRegistry'
 import { deleteImageInputEntries, imageGenerationJobHandler } from './provider/custom/tasks/imageGenerationJobHandler'
@@ -390,7 +391,8 @@ export class AiService extends BaseService {
       tools,
       system,
       options,
-      hookParts: [this.analyticsHookPart(model), ...hookParts]
+      hookParts: [this.analyticsHookPart(model), ...hookParts],
+      mediaCapabilities: resolveMediaCapabilities(model)
     })
 
     return agent.stream(preparedMessages, signal)
