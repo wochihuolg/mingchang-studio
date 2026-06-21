@@ -1,15 +1,13 @@
 import { execFile } from 'node:child_process'
 import fs from 'node:fs'
-import os from 'node:os'
 import path from 'node:path'
 import { promisify } from 'node:util'
 
 import { application } from '@application'
 import { loggerService } from '@logger'
-import { HOME_CHERRY_DIR } from '@shared/config/constant'
+import { isWin } from '@main/core/platform'
 import { gte as semverGte } from 'semver'
 
-import { isWin } from '../constant'
 import { toAsarUnpackedPath } from '.'
 
 const execFileAsync = promisify(execFile)
@@ -40,7 +38,7 @@ function getBundledBinariesDir(): string {
 }
 
 function getUserBinDir(): string {
-  return path.join(os.homedir(), HOME_CHERRY_DIR, 'bin')
+  return application.getPath('cherry.bin')
 }
 
 /**

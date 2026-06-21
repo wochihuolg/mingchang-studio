@@ -95,6 +95,8 @@ export const allHandlers: ApiImplementation = {
 - Domain workflows
 - Data access via Drizzle ORM
 
+**Scope limit:** A DataApi service is the **data** business-logic layer — its domain workflows orchestrate **SQLite reads/writes only**, never fs/network/process/external-service side effects, even alongside a legitimate DB write and no matter how deeply nested. See [Hard Rule: No Non-Data Side Effects](./api-design-guidelines.md#hard-rule-no-non-data-side-effects).
+
 ### Cross-Service Table Access
 
 Each table has exactly **one owning service** — the rule is split by access kind:
@@ -110,6 +112,25 @@ Why writes are strict: the owning service is the single source of truth for the 
 
 If you're tempted to write "going through `XxxService` would be over-engineering" — stop. A 5-line method on the owner is not over-engineering; a foreign service writing to its table is.
 
+#### Breaking a circular dependency (`dataServiceRegistry`)
+
+When two services call **each other** (A→B and B→A), a top-level `import { bService } from './BService'` forms a value-level import cycle the bundler cannot order. Do **not** paper over it with `await import('./BService')` at the call site — that infects the caller with `async`, hides the edge from static tooling, and is easy to reintroduce.
+
+Resolve the sibling lazily through `dataServiceRegistry` instead:
+
+- the sibling **self-registers** at the bottom of its module: `registerDataService('BService', bService)`
+- the caller **resolves at call time**: `const bService = getDataService('BService')`
+
+The registry imports services only as `import type`, so it stays a sink in the import graph and no value cycle can form. **Only the services that form a cycle are added to the registry and self-register; every other data service stays a plain direct-import singleton and never touches it.** Acyclic cross-calls keep using a plain direct import (e.g. `pinService` above) — reach for the registry **only** when a real cycle exists.
+
+**Tests:** the registry is populated by module load — in production each service is loaded by its DataApi handler before any call runs. A unit test that drives a cross-service path must load the sibling so it self-registers, via a side-effect import:
+
+```ts
+import '@data/services/BService' // self-registers; otherwise getDataService throws "not registered yet"
+```
+
+Contract and rationale: `src/main/data/services/dataServiceRegistry.ts`.
+
 ### Example Service
 
 ```typescript
@@ -120,15 +141,6 @@ import { topicTable } from '@data/db/schemas/topic'
 import { DataApiErrorFactory } from '@shared/data/api'
 
 export class TopicService {
-  private static instance: TopicService
-
-  static getInstance(): TopicService {
-    if (!this.instance) {
-      this.instance = new TopicService()
-    }
-    return this.instance
-  }
-
   private get db() {
     return application.get('DbService').getDb()
   }
@@ -181,7 +193,7 @@ export class TopicService {
   }
 }
 
-export const topicService = TopicService.getInstance()
+export const topicService = new TopicService()
 ```
 
 ### Write-path defaults
@@ -210,12 +222,12 @@ Each Entity Service provides a `rowToEntity` function that bridges a Drizzle row
 ```ts
 import { nullsToUndefined, timestampToISO } from './utils/rowMappers'
 
-function rowToMCPServer(row: typeof mcpServerTable.$inferSelect): MCPServer {
+function rowToMcpServer(row: typeof mcpServerTable.$inferSelect): McpServer {
   const clean = nullsToUndefined(row)
   return {
     ...clean,
-    type: clean.type as MCPServer['type'], // narrow enum
-    installSource: clean.installSource as MCPServer['installSource'],
+    type: clean.type as McpServer['type'], // narrow enum
+    installSource: clean.installSource as McpServer['installSource'],
     createdAt: timestampToISO(row.createdAt),
     updatedAt: timestampToISO(row.updatedAt)
   }
@@ -250,7 +262,7 @@ Some `rowToEntity` functions do too much to benefit from spread. Keep them hand-
 - **Field renaming**: `row.parameters → domain parameterSupport` (ModelService)
 - **Computed / merged fields**: `authType` derivation, `apiFeatures` merging from defaults (ProviderService)
 - **Sensitive data sanitization**: `apiKeys` stripping — `...clean` would leak unsanitized values
-- **Discriminator-driven field stripping with brand validation**: branded discriminated union where each variant declares only its own fields — `nullsToUndefined + spread` would emit absent fields as `undefined` and break the BO shape. Dispatch on the discriminator and call `schema.parse` per variant. Example: `FileEntryService.rowToFileEntry` for `FileEntry` (variants on `origin`); see `packages/shared/data/types/file/fileEntry.ts` header (§"DB row vs Business Object") for the full DB-CHECK / BO-narrow rationale.
+- **Discriminator-driven field stripping with brand validation**: branded discriminated union where each variant declares only its own fields — `nullsToUndefined + spread` would emit absent fields as `undefined` and break the BO shape. Dispatch on the discriminator and call `schema.parse` per variant. Example: `FileEntryService.rowToFileEntry` for `FileEntry` (variants on `origin`); see `src/shared/data/types/file/fileEntry.ts` header (§"DB row vs Business Object") for the full DB-CHECK / BO-narrow rationale.
 
 **Anti-pattern — `??` fallbacks for fabricated defaults:**
 
@@ -414,7 +426,7 @@ throw DataApiErrorFactory.timeout('fetch topics', 3000)
 
 ### Step-by-Step
 
-1. **Define schema** in `packages/shared/data/api/schemas/`
+1. **Define schema** in `src/shared/data/api/schemas/`
 
 ```typescript
 // schemas/topic.ts

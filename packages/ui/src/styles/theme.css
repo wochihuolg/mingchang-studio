@@ -316,6 +316,19 @@
   --color-ghost-active: var(--cs-ghost-active);
   --color-sidebar: var(--cs-sidebar);
   --color-sidebar-accent: var(--cs-sidebar-accent);
+  --color-card-foreground: var(--cs-card-foreground);
+  --color-popover-foreground: var(--cs-popover-foreground);
+  --color-secondary-foreground: var(--cs-secondary-foreground);
+  --color-accent-foreground: var(--cs-accent-foreground);
+  --color-primary-foreground: var(--cs-primary-foreground);
+  --color-destructive-foreground: var(--cs-destructive-foreground);
+  --color-input: var(--cs-input);
+  --color-sidebar-foreground: var(--cs-sidebar-foreground);
+  --color-sidebar-primary: var(--cs-sidebar-primary);
+  --color-sidebar-primary-foreground: var(--cs-sidebar-primary-foreground);
+  --color-sidebar-accent-foreground: var(--cs-sidebar-accent-foreground);
+  --color-sidebar-border: var(--cs-sidebar-border);
+  --color-sidebar-ring: var(--cs-sidebar-ring);
 
   /* ==================== */
   /* Status Colors */
@@ -416,6 +429,35 @@
   --paragraph-spacing-heading-lg: var(--cs-paragraph-spacing-heading-lg);
   --paragraph-spacing-heading-xl: var(--cs-paragraph-spacing-heading-xl);
   --paragraph-spacing-heading-2xl: var(--cs-paragraph-spacing-heading-2xl);
+
+  /* ==================== */
+  /* Animation */
+  /* ==================== */
+  --animate-checkbox-bounce: checkbox-bounce 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  --animate-checkbox-icon-in: checkbox-icon-in 160ms ease-out both;
+
+  @keyframes checkbox-bounce {
+    0%,
+    100% {
+      transform: scale(1);
+    }
+
+    50% {
+      transform: scale(1.08);
+    }
+  }
+
+  @keyframes checkbox-icon-in {
+    from {
+      opacity: 0;
+      transform: scale(0.75);
+    }
+
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
 }
 
 @layer base {

@@ -13,9 +13,9 @@
 
 import { application } from '@application'
 import {
-  type MiniAppInsert,
+  type InsertMiniAppRow,
   type MiniAppRegion,
-  type MiniAppSelect,
+  type MiniAppRow,
   type MiniAppStatus,
   miniAppTable
 } from '@data/db/schemas/miniApp'
@@ -24,7 +24,7 @@ import { loggerService } from '@logger'
 import { DataApiErrorFactory } from '@shared/data/api'
 import type { OrderRequest } from '@shared/data/api/schemas/_endpointHelpers'
 import type { CreateMiniAppDto, UpdateMiniAppDto } from '@shared/data/api/schemas/miniApps'
-import { PRESETS_MINI_APPS } from '@shared/data/presets/mini-apps'
+import { PRESETS_MINI_APPS } from '@shared/data/presets/miniApps'
 import type { MiniApp, MiniAppId } from '@shared/data/types/miniApp'
 import { and, asc, desc, eq, ne } from 'drizzle-orm'
 
@@ -41,7 +41,7 @@ function brandId(raw: string): MiniAppId {
 }
 
 /** Convert a DB row to the public MiniApp DTO. */
-function rowToMiniApp(row: MiniAppSelect): MiniApp {
+function rowToMiniApp(row: MiniAppRow): MiniApp {
   const clean = nullsToUndefined(row)
   return {
     appId: brandId(clean.appId),
@@ -125,7 +125,7 @@ export class MiniAppService {
               scope: eq(miniAppTable.status, status)
             }
           )
-          return inserted as MiniAppSelect | undefined
+          return inserted as MiniAppRow | undefined
         }),
       defaultHandlersFor('MiniApp', dto.appId)
     )
@@ -167,7 +167,7 @@ export class MiniAppService {
             .limit(1)
           if (!existing) throw DataApiErrorFactory.notFound('MiniApp', appId)
 
-          const updates: Partial<MiniAppInsert> = { status: targetStatus }
+          const updates: Partial<InsertMiniAppRow> = { status: targetStatus }
 
           if (existing.status !== targetStatus) {
             // Transitioning partitions: place at tail of the target partition.

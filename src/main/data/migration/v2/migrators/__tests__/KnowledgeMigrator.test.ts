@@ -1,7 +1,10 @@
 import fs from 'node:fs'
 
 import { createClient } from '@libsql/client'
-import { KNOWLEDGE_BASE_ERROR_MISSING_EMBEDDING_MODEL } from '@shared/data/types/knowledge'
+import {
+  KNOWLEDGE_BASE_ERROR_MISSING_EMBEDDING_MODEL,
+  KNOWLEDGE_ITEM_ERROR_DIRECTORY_NOT_MIGRATED
+} from '@shared/data/types/knowledge'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('node:fs', async () => {
@@ -24,11 +27,100 @@ vi.mock('@logger', () => ({
   }
 }))
 
-import { KnowledgeMigrator } from '../KnowledgeMigrator'
+import { KNOWLEDGE_DIRECTORY_CHILD_LOADER_REMAP_SHARED_DATA_KEY, KnowledgeMigrator } from '../KnowledgeMigrator'
+import { transformKnowledgeItem } from '../mappings/KnowledgeMappings'
 
 vi.mock('@libsql/client', () => ({
   createClient: vi.fn()
 }))
+
+const UUIDV7_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+const UUIDV4_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+const STREAMED_FILE_ID = '019606a0-0000-7000-8000-000000000201'
+
+describe('KnowledgeMappings', () => {
+  it('migrates legacy sitemap items as url items', () => {
+    const result = transformKnowledgeItem(
+      'kb-1',
+      {
+        id: 'legacy-sitemap-1',
+        type: 'sitemap',
+        content: 'https://example.com/sitemap.xml',
+        uniqueId: 'loader-sitemap'
+      },
+      {
+        noteById: new Map(),
+        filesById: new Map()
+      }
+    )
+
+    expect(result).toMatchObject({
+      ok: true,
+      value: {
+        baseId: 'kb-1',
+        groupId: null,
+        type: 'url',
+        data: {
+          source: 'https://example.com/sitemap.xml',
+          url: 'https://example.com/sitemap.xml'
+        },
+        status: 'completed',
+        error: null
+      }
+    })
+  })
+
+  it('trims whitespace around legacy sitemap content before migrating', () => {
+    const result = transformKnowledgeItem(
+      'kb-1',
+      {
+        id: 'legacy-sitemap-2',
+        type: 'sitemap',
+        content: '   https://example.com/sitemap.xml   ',
+        uniqueId: 'loader-sitemap'
+      },
+      {
+        noteById: new Map(),
+        filesById: new Map()
+      }
+    )
+
+    expect(result).toMatchObject({
+      ok: true,
+      value: {
+        baseId: 'kb-1',
+        groupId: null,
+        type: 'url',
+        data: {
+          source: 'https://example.com/sitemap.xml',
+          url: 'https://example.com/sitemap.xml'
+        },
+        status: 'completed',
+        error: null
+      }
+    })
+  })
+
+  it('keeps invalid legacy sitemap items skippable', () => {
+    const result = transformKnowledgeItem(
+      'kb-1',
+      {
+        id: 'legacy-sitemap-1',
+        type: 'sitemap',
+        content: '   '
+      },
+      {
+        noteById: new Map(),
+        filesById: new Map()
+      }
+    )
+
+    expect(result).toEqual({
+      ok: false,
+      reason: 'invalid_sitemap'
+    })
+  })
+})
 
 describe('KnowledgeMigrator dimensions resolution', () => {
   beforeEach(() => {
@@ -338,7 +430,7 @@ describe('KnowledgeMigrator dimensions resolution', () => {
     expect(result.success).toBe(true)
     expect(migrator.preparedBases).toHaveLength(1)
     expect(migrator.preparedBases[0]).toMatchObject({
-      id: 'kb-dangling-model',
+      id: expect.stringMatching(UUIDV4_PATTERN),
       dimensions: 768,
       embeddingModelId: null,
       status: 'failed',
@@ -349,6 +441,8 @@ describe('KnowledgeMigrator dimensions resolution', () => {
     expect(migrator.skippedCount).toBe(0)
     expect(migrator.sourceCount).toBe(2)
     expect(resolveDimensionsForBase).not.toHaveBeenCalled()
+    expect(migrator.preparedItems[0].baseId).toBe(migrator.preparedBases[0].id)
+    expect(migrator.legacyBaseIdRemap.get('kb-dangling-model')).toBe(migrator.preparedBases[0].id)
     expect(result.warnings?.some((warning: string) => warning.includes('dangling embedding model reference'))).toBe(
       true
     )
@@ -402,17 +496,19 @@ describe('KnowledgeMigrator dimensions resolution', () => {
     expect(migrator.preparedBases).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          id: 'kb-missing-chunk',
           chunkSize: 1024,
           chunkOverlap: 200
         }),
         expect.objectContaining({
-          id: 'kb-small-chunk',
           chunkSize: 128,
           chunkOverlap: 127
         })
       ])
     )
+    expect(migrator.preparedBases.every((base: any) => UUIDV4_PATTERN.test(base.id))).toBe(true)
+    expect(migrator.legacyBaseIdRemap.size).toBe(2)
+    expect(migrator.legacyBaseIdRemap.get('kb-missing-chunk')).toMatch(UUIDV4_PATTERN)
+    expect(migrator.legacyBaseIdRemap.get('kb-small-chunk')).toMatch(UUIDV4_PATTERN)
   })
 
   it('prepare skips base and items when legacy knowledge store path is a directory', async () => {
@@ -519,7 +615,7 @@ describe('KnowledgeMigrator dimensions resolution', () => {
         await onBatch(
           [
             {
-              id: 'file-1',
+              id: STREAMED_FILE_ID,
               name: 'report.pdf',
               origin_name: 'report.pdf',
               path: '/tmp/report.pdf',
@@ -530,7 +626,7 @@ describe('KnowledgeMigrator dimensions resolution', () => {
               count: 1
             },
             {
-              id: 'file-unused',
+              id: '019606a0-0000-7000-8000-000000000202',
               name: 'unused.pdf',
               origin_name: 'unused.pdf',
               path: '/tmp/unused.pdf',
@@ -568,7 +664,7 @@ describe('KnowledgeMigrator dimensions resolution', () => {
                 model: { id: 'm1', name: 'model-1', provider: 'openai' },
                 items: [
                   { id: 'note-1', type: 'note', content: 'redux fallback' },
-                  { id: 'file-item-1', type: 'file', content: 'file-1' }
+                  { id: 'file-item-1', type: 'file', content: STREAMED_FILE_ID }
                 ]
               }
             ]
@@ -589,20 +685,18 @@ describe('KnowledgeMigrator dimensions resolution', () => {
     expect(createStreamReader).toHaveBeenCalledWith('knowledge_notes')
     expect(createStreamReader).toHaveBeenCalledWith('files')
 
-    const noteItem = migrator.preparedItems.find((item: any) => item.id === 'note-1')
-    const fileItem = migrator.preparedItems.find((item: any) => item.id === 'file-item-1')
+    const noteItem = migrator.preparedItems.find((item: any) => item.id === migrator.legacyItemIdRemap.get('note-1'))
+    const fileItem = migrator.preparedItems.find(
+      (item: any) => item.id === migrator.legacyItemIdRemap.get('file-item-1')
+    )
 
     expect(noteItem?.data).toEqual({
       source: 'https://streamed.example.com',
-      content: 'streamed note content',
-      sourceUrl: 'https://streamed.example.com'
+      content: 'streamed note content'
     })
     expect(fileItem?.data).toEqual({
       source: '/tmp/report.pdf',
-      file: expect.objectContaining({
-        id: 'file-1',
-        name: 'report.pdf'
-      })
+      relativePath: 'report.pdf'
     })
     expect(noteReader.readInBatches).toHaveBeenCalledTimes(1)
     expect(fileReader.readInBatches).toHaveBeenCalledTimes(1)
@@ -688,7 +782,7 @@ describe('KnowledgeMigrator dimensions resolution', () => {
     expect(result.success).toBe(true)
     expect(migrator.preparedBases).toHaveLength(1)
     expect(migrator.preparedBases[0]).toMatchObject({
-      id: 'kb-dangling-rerank',
+      id: expect.stringMatching(UUIDV4_PATTERN),
       embeddingModelId: 'silicon::BAAI/bge-m3',
       status: 'completed',
       error: null,
@@ -741,14 +835,671 @@ describe('KnowledgeMigrator dimensions resolution', () => {
     } as any
 
     const result = await migrator.prepare(ctx)
-    const statusById = new Map(migrator.preparedItems.map((item: any) => [item.id, item.status]))
+    const statusByLegacyId = new Map(
+      [...migrator.legacyItemIdRemap.entries()].map(([legacyItemId, migratedItemId]) => [
+        legacyItemId,
+        migrator.preparedItems.find((item: any) => item.id === migratedItemId)?.status
+      ])
+    )
 
     expect(result.success).toBe(true)
-    expect(statusById.get('i-no-unique-id')).toBe('idle')
-    expect(statusById.get('i-with-unique-id')).toBe('completed')
-    expect(statusById.get('i-with-empty-unique-id')).toBe('idle')
-    expect(statusById.get('i-processing-but-no-unique-id')).toBe('idle')
-    expect(statusById.get('i-failed-with-unique-id')).toBe('completed')
+    expect(statusByLegacyId.get('i-no-unique-id')).toBe('idle')
+    expect(statusByLegacyId.get('i-with-unique-id')).toBe('completed')
+    expect(statusByLegacyId.get('i-with-empty-unique-id')).toBe('idle')
+    expect(statusByLegacyId.get('i-processing-but-no-unique-id')).toBe('failed')
+    expect(statusByLegacyId.get('i-failed-with-unique-id')).toBe('failed')
+  })
+
+  it('prepare expands a v1-indexed directory into a completed container plus per-file children', async () => {
+    // V1 booked every embedded file under the directory item's loader ids with no
+    // per-file item, so its vectors were dropped on migration. When the legacy vector
+    // sources are readable, the folder expands into a completed container directory plus
+    // one completed file child per embedded file, so the vectors re-attribute per file.
+    const migrator = new KnowledgeMigrator() as any
+    vi.spyOn(migrator, 'resolveDimensionsForBase').mockResolvedValue({ dimensions: 1024, reason: 'ok' })
+    // Stub the legacy vector-DB read so the test needs no embedjs store on disk.
+    vi.spyOn(migrator, 'loadLoaderSourceMap').mockResolvedValue({
+      kind: 'loaded',
+      sources: new Map([
+        ['loader-dir-a', '/docs/api/README.md'],
+        ['loader-dir-b', '/docs/web/README.md']
+      ])
+    })
+
+    const ctx = {
+      paths: { knowledgeBaseDir: '/mock/userData/Data/KnowledgeBase' },
+      sources: {
+        reduxState: {
+          getCategory: vi.fn().mockReturnValue({
+            bases: [
+              {
+                id: 'kb-dir',
+                name: 'KB dir',
+                model: { id: 'BAAI/bge-m3', name: 'BAAI/bge-m3', provider: 'silicon' },
+                items: [
+                  {
+                    id: 'item-directory',
+                    type: 'directory',
+                    content: '/docs',
+                    uniqueId: 'DirectoryLoader_ignore',
+                    uniqueIds: ['loader-dir-a', 'loader-dir-b']
+                  }
+                ]
+              }
+            ]
+          })
+        },
+        dexieExport: {
+          tableExists: vi.fn().mockResolvedValue(false),
+          readTable: vi.fn()
+        }
+      },
+      db: {
+        select: vi.fn().mockReturnValue({
+          from: vi.fn().mockResolvedValue([{ id: 'silicon::BAAI/bge-m3' }])
+        })
+      }
+    } as any
+
+    const result = await migrator.prepare(ctx)
+    expect(result.success).toBe(true)
+
+    // The folder item now maps to a completed container directory with no parent.
+    const containerId = migrator.legacyItemIdRemap.get('item-directory')
+    const container = migrator.preparedItems.find((item: any) => item.id === containerId)
+    expect(container).toMatchObject({ type: 'directory', status: 'completed', error: null, groupId: null })
+
+    // One completed file child per embedded file, parented to the container, each with a
+    // virtual relativePath (its own id) since the source is never copied into the base.
+    const children = migrator.preparedItems.filter((item: any) => item.groupId === containerId)
+    expect(children).toHaveLength(2)
+    for (const child of children) {
+      expect(child).toMatchObject({ type: 'file', status: 'completed', error: null })
+      // Virtual relativePath (its own id) that never resolves to a raw/ file, so reindex admission
+      // rejects it on the missing-source check (no separate flag needed).
+      expect(child.data.relativePath).toBe(child.id)
+    }
+    const childA = children.find((c: any) => c.data.source === '/docs/api/README.md')
+    const childB = children.find((c: any) => c.data.source === '/docs/web/README.md')
+    expect(childA).toBeTruthy()
+    expect(childB).toBeTruthy()
+
+    // The loader → child remap is published for the vector migrator to re-attribute chunks,
+    // scoped by the migrated base id so a loader id shared across bases cannot clobber.
+    const baseChildLoaderRemap = migrator.directoryChildLoaderRemap.get(childA.baseId)
+    expect(baseChildLoaderRemap.get('loader-dir-a')).toBe(childA.id)
+    expect(baseChildLoaderRemap.get('loader-dir-b')).toBe(childB.id)
+  })
+
+  it('prepare keeps the directory child loader remap distinct across bases sharing a loader id', async () => {
+    // v1 loader ids are path/content hashes with no base component, so two bases that each
+    // indexed the same file path carry the same loader id. The remap must stay scoped per
+    // base — otherwise the second base clobbers the first and the first base's vectors fall
+    // back to the directory container and are dropped as non_indexable_container.
+    const migrator = new KnowledgeMigrator() as any
+    vi.spyOn(migrator, 'resolveDimensionsForBase').mockResolvedValue({ dimensions: 1024, reason: 'ok' })
+    vi.spyOn(migrator, 'loadLoaderSourceMap').mockResolvedValue({
+      kind: 'loaded',
+      sources: new Map([['loader-shared', '/docs/shared/README.md']])
+    })
+
+    const makeBase = (baseId: string, itemId: string) => ({
+      id: baseId,
+      name: baseId,
+      model: { id: 'BAAI/bge-m3', name: 'BAAI/bge-m3', provider: 'silicon' },
+      items: [
+        {
+          id: itemId,
+          type: 'directory',
+          content: '/docs',
+          uniqueId: 'DirectoryLoader_ignore',
+          uniqueIds: ['loader-shared']
+        }
+      ]
+    })
+
+    const ctx = {
+      paths: { knowledgeBaseDir: '/mock/userData/Data/KnowledgeBase' },
+      sources: {
+        reduxState: {
+          getCategory: vi.fn().mockReturnValue({
+            bases: [makeBase('kb-a', 'item-dir-a'), makeBase('kb-b', 'item-dir-b')]
+          })
+        },
+        dexieExport: {
+          tableExists: vi.fn().mockResolvedValue(false),
+          readTable: vi.fn()
+        }
+      },
+      db: {
+        select: vi.fn().mockReturnValue({
+          from: vi.fn().mockResolvedValue([{ id: 'silicon::BAAI/bge-m3' }])
+        })
+      }
+    } as any
+
+    const result = await migrator.prepare(ctx)
+    expect(result.success).toBe(true)
+
+    const baseAId = migrator.legacyBaseIdRemap.get('kb-a')
+    const baseBId = migrator.legacyBaseIdRemap.get('kb-b')
+    const childA = migrator.preparedItems.find((item: any) => item.type === 'file' && item.baseId === baseAId)
+    const childB = migrator.preparedItems.find((item: any) => item.type === 'file' && item.baseId === baseBId)
+    expect(childA.id).not.toBe(childB.id)
+
+    // Each base keeps its own loader-shared → child mapping; no cross-base clobber.
+    expect(migrator.directoryChildLoaderRemap.size).toBe(2)
+    expect(migrator.directoryChildLoaderRemap.get(baseAId).get('loader-shared')).toBe(childA.id)
+    expect(migrator.directoryChildLoaderRemap.get(baseBId).get('loader-shared')).toBe(childB.id)
+  })
+
+  it('prepare falls back to the directory tombstone when the legacy vectors are unreadable', async () => {
+    // No loader source resolves (vector DB missing/empty), so the folder cannot expand;
+    // it falls through to the shared directory mapping: `warning` + the not-migrated code
+    // the UI renders as a delete-and-re-upload prompt, rather than a silently empty completed folder.
+    const migrator = new KnowledgeMigrator() as any
+    vi.spyOn(migrator, 'resolveDimensionsForBase').mockResolvedValue({ dimensions: 1024, reason: 'ok' })
+    vi.spyOn(migrator, 'loadLoaderSourceMap').mockResolvedValue({ kind: 'loaded', sources: new Map<string, string>() })
+
+    const ctx = {
+      paths: { knowledgeBaseDir: '/mock/userData/Data/KnowledgeBase' },
+      sources: {
+        reduxState: {
+          getCategory: vi.fn().mockReturnValue({
+            bases: [
+              {
+                id: 'kb-dir',
+                name: 'KB dir',
+                model: { id: 'BAAI/bge-m3', name: 'BAAI/bge-m3', provider: 'silicon' },
+                items: [
+                  {
+                    id: 'item-directory',
+                    type: 'directory',
+                    content: '/docs',
+                    uniqueId: 'DirectoryLoader_indexed',
+                    uniqueIds: ['loader-dir-a']
+                  }
+                ]
+              }
+            ]
+          })
+        },
+        dexieExport: {
+          tableExists: vi.fn().mockResolvedValue(false),
+          readTable: vi.fn()
+        }
+      },
+      db: {
+        select: vi.fn().mockReturnValue({
+          from: vi.fn().mockResolvedValue([{ id: 'silicon::BAAI/bge-m3' }])
+        })
+      }
+    } as any
+
+    const result = await migrator.prepare(ctx)
+    expect(result.success).toBe(true)
+
+    const migratedId = migrator.legacyItemIdRemap.get('item-directory')
+    const tombstone = migrator.preparedItems.find((item: any) => item.id === migratedId)
+    // A single directory item (no children synthesized), `failed` with the not-migrated code.
+    expect(migrator.preparedItems.filter((item: any) => item.groupId === migratedId)).toHaveLength(0)
+    expect(tombstone).toMatchObject({
+      type: 'directory',
+      status: 'failed',
+      error: KNOWLEDGE_ITEM_ERROR_DIRECTORY_NOT_MIGRATED
+    })
+    expect(migrator.directoryChildLoaderRemap.size).toBe(0)
+    // An `empty` store stays quiet — only a `read_error` warrants the base-level "unreadable" warning.
+    expect(migrator.warnings.some((warning: string) => warning.includes('unreadable'))).toBe(false)
+  })
+
+  it('prepare keeps an interrupted directory as a failed item instead of expanding it', async () => {
+    // A v1 directory left in `processing`/`pending`/`failed` had only some files embedded before
+    // it was interrupted. Even with resolvable loader sources it must NOT expand into a fully
+    // `completed` container (that would bury the interruption and hide the need to delete and re-upload); the
+    // status gate makes it fall through to the shared mapping and stay `failed` with the retry message.
+    const migrator = new KnowledgeMigrator() as any
+    vi.spyOn(migrator, 'resolveDimensionsForBase').mockResolvedValue({ dimensions: 1024, reason: 'ok' })
+    vi.spyOn(migrator, 'loadLoaderSourceMap').mockResolvedValue({
+      kind: 'loaded',
+      sources: new Map([['loader-dir-a', '/docs/a.md']])
+    })
+
+    const ctx = {
+      paths: { knowledgeBaseDir: '/mock/userData/Data/KnowledgeBase' },
+      sources: {
+        reduxState: {
+          getCategory: vi.fn().mockReturnValue({
+            bases: [
+              {
+                id: 'kb-dir',
+                name: 'KB dir',
+                model: { id: 'BAAI/bge-m3', name: 'BAAI/bge-m3', provider: 'silicon' },
+                items: [
+                  {
+                    id: 'item-directory',
+                    type: 'directory',
+                    content: '/docs',
+                    processingStatus: 'processing',
+                    uniqueId: 'DirectoryLoader_interrupted',
+                    uniqueIds: ['loader-dir-a']
+                  }
+                ]
+              }
+            ]
+          })
+        },
+        dexieExport: { tableExists: vi.fn().mockResolvedValue(false), readTable: vi.fn() }
+      },
+      db: {
+        select: vi.fn().mockReturnValue({ from: vi.fn().mockResolvedValue([{ id: 'silicon::BAAI/bge-m3' }]) })
+      }
+    } as any
+
+    const result = await migrator.prepare(ctx)
+    expect(result.success).toBe(true)
+
+    const migratedId = migrator.legacyItemIdRemap.get('item-directory')
+    const item = migrator.preparedItems.find((i: any) => i.id === migratedId)
+    // Not expanded: a single failed directory item, no synthesized children, no loader remap.
+    expect(migrator.preparedItems.filter((i: any) => i.groupId === migratedId)).toHaveLength(0)
+    expect(item).toMatchObject({
+      type: 'directory',
+      status: 'failed',
+      error: 'Legacy knowledge item indexing was interrupted and needs to be retried.'
+    })
+    expect(migrator.directoryChildLoaderRemap.size).toBe(0)
+  })
+
+  it('prepare records a warning when only some of a folder’s embedded files have migratable vectors', async () => {
+    // The folder booked three embedded files but only two resolve to a source in the legacy
+    // vectors. The two resolved children are correct and stay `completed`; the dropped third is
+    // surfaced as a migration warning (not a container `warning`, which the child rollup would
+    // revert to `completed`), so the partial loss is not silent.
+    const migrator = new KnowledgeMigrator() as any
+    vi.spyOn(migrator, 'resolveDimensionsForBase').mockResolvedValue({ dimensions: 1024, reason: 'ok' })
+    vi.spyOn(migrator, 'loadLoaderSourceMap').mockResolvedValue({
+      kind: 'loaded',
+      sources: new Map([
+        ['loader-dir-a', '/docs/a.md'],
+        ['loader-dir-b', '/docs/b.md']
+      ])
+    })
+
+    const ctx = {
+      paths: { knowledgeBaseDir: '/mock/userData/Data/KnowledgeBase' },
+      sources: {
+        reduxState: {
+          getCategory: vi.fn().mockReturnValue({
+            bases: [
+              {
+                id: 'kb-dir',
+                name: 'KB dir',
+                model: { id: 'BAAI/bge-m3', name: 'BAAI/bge-m3', provider: 'silicon' },
+                items: [
+                  {
+                    id: 'item-directory',
+                    type: 'directory',
+                    content: '/docs',
+                    uniqueId: 'DirectoryLoader_indexed',
+                    uniqueIds: ['loader-dir-a', 'loader-dir-b', 'loader-dir-c']
+                  }
+                ]
+              }
+            ]
+          })
+        },
+        dexieExport: { tableExists: vi.fn().mockResolvedValue(false), readTable: vi.fn() }
+      },
+      db: {
+        select: vi.fn().mockReturnValue({ from: vi.fn().mockResolvedValue([{ id: 'silicon::BAAI/bge-m3' }]) })
+      }
+    } as any
+
+    const result = await migrator.prepare(ctx)
+    expect(result.success).toBe(true)
+
+    const containerId = migrator.legacyItemIdRemap.get('item-directory')
+    expect(migrator.preparedItems.filter((i: any) => i.groupId === containerId)).toHaveLength(2)
+    expect(migrator.preparedItems.find((i: any) => i.id === containerId)).toMatchObject({
+      type: 'directory',
+      status: 'completed',
+      // The loss is surfaced as a migration warning, NOT a container `warning` status/error
+      // (which the child rollup would revert to completed), so the container stays clean.
+      error: null
+    })
+    expect(
+      result.warnings?.some((warning: string) => warning.includes('re-attributed vectors for 2 of 3 embedded files'))
+    ).toBe(true)
+  })
+
+  it('prepare keeps a directory tombstone and never reads legacy vectors when the embedding model is unresolved', async () => {
+    // No vectors migrate for a base with an unresolved embedding model, so re-attribution is
+    // skipped entirely (loadLoaderSourceMap is never read) and the folder keeps its migration-failed
+    // tombstone instead of synthesizing children that would claim `completed` with nothing behind them.
+    const migrator = new KnowledgeMigrator() as any
+    const loadLoaderSourceMap = vi.spyOn(migrator, 'loadLoaderSourceMap')
+
+    const ctx = {
+      paths: { knowledgeBaseDir: '/mock/userData/Data/KnowledgeBase' },
+      sources: {
+        reduxState: {
+          getCategory: vi.fn().mockReturnValue({
+            bases: [
+              {
+                id: 'kb-dir',
+                name: 'KB dir',
+                dimensions: 768,
+                model: { id: 'qwen', name: 'qwen', provider: 'cherryai' },
+                items: [
+                  {
+                    id: 'item-directory',
+                    type: 'directory',
+                    content: '/docs',
+                    uniqueId: 'DirectoryLoader_indexed',
+                    uniqueIds: ['loader-dir-a']
+                  }
+                ]
+              }
+            ]
+          })
+        },
+        dexieExport: { tableExists: vi.fn().mockResolvedValue(false), readTable: vi.fn() }
+      },
+      db: {
+        select: vi.fn().mockReturnValue({ from: vi.fn().mockResolvedValue([{ id: 'openai::text-embedding-3-small' }]) })
+      }
+    } as any
+
+    const result = await migrator.prepare(ctx)
+    expect(result.success).toBe(true)
+    expect(loadLoaderSourceMap).not.toHaveBeenCalled()
+
+    const migratedId = migrator.legacyItemIdRemap.get('item-directory')
+    expect(migrator.preparedItems.filter((i: any) => i.groupId === migratedId)).toHaveLength(0)
+    expect(migrator.preparedItems.find((i: any) => i.id === migratedId)).toMatchObject({
+      type: 'directory',
+      status: 'failed',
+      error: KNOWLEDGE_ITEM_ERROR_DIRECTORY_NOT_MIGRATED
+    })
+  })
+
+  it('prepare warns that a base’s folders fell back to tombstones when the legacy vectors are unreadable', async () => {
+    // A read failure (e.g. a transient DB lock) is recoverable, unlike a genuinely empty store:
+    // the folder keeps its tombstone, and the migration warns that a re-run once the DB is
+    // readable can still recover it.
+    const migrator = new KnowledgeMigrator() as any
+    vi.spyOn(migrator, 'resolveDimensionsForBase').mockResolvedValue({ dimensions: 1024, reason: 'ok' })
+    vi.spyOn(migrator, 'loadLoaderSourceMap').mockResolvedValue({
+      kind: 'read_error',
+      sources: new Map<string, string>()
+    })
+
+    const ctx = {
+      paths: { knowledgeBaseDir: '/mock/userData/Data/KnowledgeBase' },
+      sources: {
+        reduxState: {
+          getCategory: vi.fn().mockReturnValue({
+            bases: [
+              {
+                id: 'kb-dir',
+                name: 'KB dir',
+                model: { id: 'BAAI/bge-m3', name: 'BAAI/bge-m3', provider: 'silicon' },
+                items: [
+                  {
+                    id: 'item-directory',
+                    type: 'directory',
+                    content: '/docs',
+                    uniqueId: 'DirectoryLoader_indexed',
+                    uniqueIds: ['loader-dir-a']
+                  }
+                ]
+              }
+            ]
+          })
+        },
+        dexieExport: { tableExists: vi.fn().mockResolvedValue(false), readTable: vi.fn() }
+      },
+      db: {
+        select: vi.fn().mockReturnValue({ from: vi.fn().mockResolvedValue([{ id: 'silicon::BAAI/bge-m3' }]) })
+      }
+    } as any
+
+    const result = await migrator.prepare(ctx)
+    expect(result.success).toBe(true)
+    expect(result.warnings?.some((warning: string) => warning.includes('legacy vector sources were unreadable'))).toBe(
+      true
+    )
+
+    const migratedId = migrator.legacyItemIdRemap.get('item-directory')
+    expect(migrator.preparedItems.find((i: any) => i.id === migratedId)).toMatchObject({
+      type: 'directory',
+      status: 'failed',
+      error: KNOWLEDGE_ITEM_ERROR_DIRECTORY_NOT_MIGRATED
+    })
+  })
+
+  it('does not emit the read_error recovery warning for a base whose only folder is not completed', async () => {
+    // The "re-run can recover" message only makes sense for a `completed` folder that would have
+    // expanded. A base with only an interrupted folder won't expand regardless of the read, so a
+    // read failure must NOT falsely promise recovery — the folder stays `failed`, needing re-index.
+    const migrator = new KnowledgeMigrator() as any
+    vi.spyOn(migrator, 'resolveDimensionsForBase').mockResolvedValue({ dimensions: 1024, reason: 'ok' })
+    vi.spyOn(migrator, 'loadLoaderSourceMap').mockResolvedValue({
+      kind: 'read_error',
+      sources: new Map<string, string>()
+    })
+
+    const ctx = {
+      paths: { knowledgeBaseDir: '/mock/userData/Data/KnowledgeBase' },
+      sources: {
+        reduxState: {
+          getCategory: vi.fn().mockReturnValue({
+            bases: [
+              {
+                id: 'kb-dir',
+                name: 'KB dir',
+                model: { id: 'BAAI/bge-m3', name: 'BAAI/bge-m3', provider: 'silicon' },
+                items: [
+                  {
+                    id: 'item-directory',
+                    type: 'directory',
+                    content: '/docs',
+                    processingStatus: 'processing',
+                    uniqueId: 'DirectoryLoader_interrupted',
+                    uniqueIds: ['loader-dir-a']
+                  }
+                ]
+              }
+            ]
+          })
+        },
+        dexieExport: { tableExists: vi.fn().mockResolvedValue(false), readTable: vi.fn() }
+      },
+      db: {
+        select: vi.fn().mockReturnValue({ from: vi.fn().mockResolvedValue([{ id: 'silicon::BAAI/bge-m3' }]) })
+      }
+    } as any
+
+    const result = await migrator.prepare(ctx)
+    expect(result.success).toBe(true)
+    // No completed folder → no false "re-run can recover" promise, even though the read threw.
+    // Assert on the instance warnings (always an array) so the negative check can't pass
+    // vacuously when `result.warnings` is undefined (it is only set when warnings exist).
+    expect(migrator.warnings.some((warning: string) => warning.includes('legacy vector sources were unreadable'))).toBe(
+      false
+    )
+
+    const migratedId = migrator.legacyItemIdRemap.get('item-directory')
+    expect(migrator.preparedItems.find((i: any) => i.id === migratedId)).toMatchObject({
+      type: 'directory',
+      status: 'failed'
+    })
+  })
+
+  it('does not emit the read_error recovery warning when the only completed-marked folder has no id', async () => {
+    // hasCompletedDirectory mirrors the expansion gate (type + id + unseen + completed). A
+    // completed-marked but id-less folder is skipped (missing_id_or_type) and never expands, so a
+    // read failure must not promise recovery for it — guards against the predicate drifting from
+    // the gate.
+    const migrator = new KnowledgeMigrator() as any
+    vi.spyOn(migrator, 'resolveDimensionsForBase').mockResolvedValue({ dimensions: 1024, reason: 'ok' })
+    vi.spyOn(migrator, 'loadLoaderSourceMap').mockResolvedValue({
+      kind: 'read_error',
+      sources: new Map<string, string>()
+    })
+
+    const ctx = {
+      paths: { knowledgeBaseDir: '/mock/userData/Data/KnowledgeBase' },
+      sources: {
+        reduxState: {
+          getCategory: vi.fn().mockReturnValue({
+            bases: [
+              {
+                id: 'kb-dir',
+                name: 'KB dir',
+                model: { id: 'BAAI/bge-m3', name: 'BAAI/bge-m3', provider: 'silicon' },
+                items: [
+                  // No `id`: completed-marked yet unexpandable.
+                  {
+                    type: 'directory',
+                    content: '/docs',
+                    uniqueId: 'DirectoryLoader_indexed',
+                    uniqueIds: ['loader-dir-a']
+                  }
+                ]
+              }
+            ]
+          })
+        },
+        dexieExport: { tableExists: vi.fn().mockResolvedValue(false), readTable: vi.fn() }
+      },
+      db: {
+        select: vi.fn().mockReturnValue({ from: vi.fn().mockResolvedValue([{ id: 'silicon::BAAI/bge-m3' }]) })
+      }
+    } as any
+
+    const result = await migrator.prepare(ctx)
+    expect(result.success).toBe(true)
+    expect(migrator.warnings.some((warning: string) => warning.includes('legacy vector sources were unreadable'))).toBe(
+      false
+    )
+  })
+
+  it('keeps an idle directory (loader ids but no completed marker) as idle without expanding it', async () => {
+    // Expansion keys off the `completed` marker (singular `uniqueId`), not the mere presence of
+    // child loader ids (plural `uniqueIds`). A folder with loader ids but no completed marker is
+    // `idle`, so the gate must NOT expand it even when the loader sources resolve.
+    const migrator = new KnowledgeMigrator() as any
+    vi.spyOn(migrator, 'resolveDimensionsForBase').mockResolvedValue({ dimensions: 1024, reason: 'ok' })
+    vi.spyOn(migrator, 'loadLoaderSourceMap').mockResolvedValue({
+      kind: 'loaded',
+      sources: new Map([['loader-dir-a', '/docs/a.md']])
+    })
+
+    const ctx = {
+      paths: { knowledgeBaseDir: '/mock/userData/Data/KnowledgeBase' },
+      sources: {
+        reduxState: {
+          getCategory: vi.fn().mockReturnValue({
+            bases: [
+              {
+                id: 'kb-dir',
+                name: 'KB dir',
+                model: { id: 'BAAI/bge-m3', name: 'BAAI/bge-m3', provider: 'silicon' },
+                items: [
+                  {
+                    id: 'item-directory',
+                    type: 'directory',
+                    content: '/docs',
+                    uniqueIds: ['loader-dir-a']
+                  }
+                ]
+              }
+            ]
+          })
+        },
+        dexieExport: { tableExists: vi.fn().mockResolvedValue(false), readTable: vi.fn() }
+      },
+      db: {
+        select: vi.fn().mockReturnValue({ from: vi.fn().mockResolvedValue([{ id: 'silicon::BAAI/bge-m3' }]) })
+      }
+    } as any
+
+    const result = await migrator.prepare(ctx)
+    expect(result.success).toBe(true)
+
+    const migratedId = migrator.legacyItemIdRemap.get('item-directory')
+    // Not expanded: a single idle directory item, no synthesized children, no loader remap.
+    expect(migrator.preparedItems.filter((i: any) => i.groupId === migratedId)).toHaveLength(0)
+    expect(migrator.preparedItems.find((i: any) => i.id === migratedId)).toMatchObject({
+      type: 'directory',
+      status: 'idle',
+      error: null
+    })
+    expect(migrator.directoryChildLoaderRemap.size).toBe(0)
+  })
+
+  it('loadLoaderSourceMap returns kind=loaded with the loader→source map when the legacy vectors are readable', async () => {
+    const migrator = new KnowledgeMigrator() as any
+    // Delegates to the shared KnowledgeVectorSourceReader so directory expansion and vector
+    // migration consume the exact same load result and path resolution.
+    const vectorSource = {
+      loadBase: vi.fn().mockResolvedValue({
+        status: 'ok',
+        dbPath: '/mock/userData/Data/KnowledgeBase/kb-ok',
+        rows: [
+          { uniqueLoaderId: 'loader-a', source: '/docs/a.md' },
+          { uniqueLoaderId: 'loader-b', source: '/docs/b.md' },
+          { uniqueLoaderId: 'loader-blank', source: '   ' },
+          { uniqueLoaderId: '', source: '/docs/x.md' }
+        ]
+      })
+    }
+
+    const result = await migrator.loadLoaderSourceMap('kb-ok', vectorSource)
+    // Blank-source and empty-loader rows are dropped; only the two usable pairs survive.
+    expect(result.kind).toBe('loaded')
+    expect([...result.sources.entries()]).toEqual([
+      ['loader-a', '/docs/a.md'],
+      ['loader-b', '/docs/b.md']
+    ])
+    expect(vectorSource.loadBase).toHaveBeenCalledWith('kb-ok')
+  })
+
+  it('loadLoaderSourceMap returns kind=loaded with an empty map when the legacy vector DB is missing or not embedjs', async () => {
+    const migrator = new KnowledgeMigrator() as any
+    for (const status of ['missing', 'invalid_path', 'directory', 'not_embedjs'] as const) {
+      const vectorSource = { loadBase: vi.fn().mockResolvedValue({ status, dbPath: '/x' }) }
+      const result = await migrator.loadLoaderSourceMap('kb-x', vectorSource)
+      expect(result).toEqual({ kind: 'loaded', sources: new Map() })
+    }
+  })
+
+  it('loadLoaderSourceMap returns kind=loaded with an empty map when the legacy vectors table has no usable rows', async () => {
+    const migrator = new KnowledgeMigrator() as any
+    const vectorSource = { loadBase: vi.fn().mockResolvedValue({ status: 'ok', dbPath: '/x', rows: [] }) }
+
+    const result = await migrator.loadLoaderSourceMap('kb-empty', vectorSource)
+    expect(result.kind).toBe('loaded')
+    expect(result.sources.size).toBe(0)
+  })
+
+  it('loadLoaderSourceMap returns kind=read_error and logs (does not report) when the read throws', async () => {
+    const migrator = new KnowledgeMigrator() as any
+    const vectorSource = { loadBase: vi.fn().mockRejectedValue(new Error('database is locked')) }
+
+    const result = await migrator.loadLoaderSourceMap('kb-read-error', vectorSource)
+    expect(result.kind).toBe('read_error')
+    expect(result.sources.size).toBe(0)
+    // The exception detail is logged but NOT pushed to the user-facing warnings here; the caller
+    // emits the actionable migration warning based on the read_error kind.
+    expect(loggerWarnMock).toHaveBeenCalledWith(
+      'Failed to read legacy vector sources for knowledge base kb-read-error: database is locked'
+    )
+    expect(migrator.warnings).not.toContain(
+      'Failed to read legacy vector sources for knowledge base kb-read-error: database is locked'
+    )
   })
 
   it('prepare preserves failed missing-model bases with null dimensions when legacy dimensions are missing', async () => {
@@ -786,7 +1537,7 @@ describe('KnowledgeMigrator dimensions resolution', () => {
     expect(result.success).toBe(true)
     expect(migrator.preparedBases).toHaveLength(1)
     expect(migrator.preparedBases[0]).toMatchObject({
-      id: 'kb-no-model',
+      id: expect.stringMatching(UUIDV4_PATTERN),
       dimensions: null,
       embeddingModelId: null,
       status: 'failed',
@@ -830,7 +1581,7 @@ describe('KnowledgeMigrator dimensions resolution', () => {
 
     expect(result.success).toBe(true)
     expect(migrator.preparedBases[0]).toMatchObject({
-      id: 'kb-no-model',
+      id: expect.stringMatching(UUIDV4_PATTERN),
       dimensions: 768,
       embeddingModelId: null,
       status: 'failed',
@@ -892,8 +1643,13 @@ describe('KnowledgeMigrator dimensions resolution', () => {
     expect(resolveDimensionsForBase).toHaveBeenCalledTimes(2)
     expect(migrator.sourceCount).toBe(8)
     expect(migrator.skippedCount).toBe(3)
-    expect(migrator.preparedBases.map((base: any) => base.id)).toEqual(['kb-1', 'kb-2'])
-    expect(migrator.preparedItems.map((item: any) => item.id)).toEqual(['item-1', 'item-dup', 'item-2'])
+    expect(migrator.preparedBases.map((base: any) => base.id)).toHaveLength(2)
+    expect(migrator.preparedBases.every((base: any) => UUIDV4_PATTERN.test(base.id))).toBe(true)
+    expect([...migrator.legacyBaseIdRemap.keys()]).toEqual(['kb-1', 'kb-2'])
+    expect([...migrator.legacyItemIdRemap.keys()]).toEqual(['item-1', 'item-dup', 'item-2'])
+    expect(migrator.preparedItems.map((item: any) => item.id)).toHaveLength(3)
+    expect(migrator.preparedItems.every((item: any) => UUIDV7_PATTERN.test(item.id))).toBe(true)
+    expect(migrator.preparedItems.every((item: any) => UUIDV4_PATTERN.test(item.baseId))).toBe(true)
     expect(
       result.warnings?.some(
         (warning: string) =>
@@ -943,10 +1699,12 @@ describe('KnowledgeMigrator dimensions resolution', () => {
     } as any
 
     const result = await migrator.prepare(ctx)
-    const child = migrator.preparedItems.find((item: any) => item.id === 'child-note')
+    const child = migrator.preparedItems.find((item: any) => item.id === migrator.legacyItemIdRemap.get('child-note'))
 
     expect(result.success).toBe(true)
     expect(migrator.preparedItems).toHaveLength(2)
+    expect(migrator.legacyItemIdRemap.get('parent-url')).toMatch(UUIDV7_PATTERN)
+    expect(migrator.legacyItemIdRemap.get('child-note')).toMatch(UUIDV7_PATTERN)
     expect(child?.groupId).toBeNull()
   })
 
@@ -1013,15 +1771,33 @@ describe('KnowledgeMigrator execute/validate paths', () => {
     vi.clearAllMocks()
   })
 
+  function createDeleteMock() {
+    const where = vi.fn().mockResolvedValue(undefined)
+    const deleteMock = vi.fn().mockReturnValue({ where })
+    return Object.assign(deleteMock, { where })
+  }
+
+  function createUpdateMock() {
+    const where = vi.fn().mockResolvedValue(undefined)
+    const set = vi.fn().mockReturnValue({ where })
+    const update = vi.fn().mockReturnValue({ set })
+    return Object.assign(update, { set, where })
+  }
+
   it('execute returns success immediately when nothing prepared', async () => {
     const migrator = new KnowledgeMigrator()
+    const deleteMock = createDeleteMock()
 
-    const result = await migrator.execute({} as any)
+    const result = await migrator.execute({
+      db: { delete: deleteMock, all: vi.fn().mockResolvedValue([]) }
+    } as any)
 
     expect(result).toEqual({
       success: true,
       processedCount: 0
     })
+    expect(deleteMock).toHaveBeenCalledTimes(1)
+    expect(deleteMock.where).toHaveBeenCalledTimes(1)
   })
 
   it('execute returns failed result when insert throws', async () => {
@@ -1039,11 +1815,12 @@ describe('KnowledgeMigrator execute/validate paths', () => {
     const values = vi.fn().mockRejectedValue(new Error('insert failed'))
     const insert = vi.fn().mockReturnValue({ values })
     const transaction = vi.fn(async (callback: (tx: any) => Promise<void>) => {
-      await callback({ insert })
+      await callback({ insert, update: createUpdateMock() })
     })
 
     const result = await migrator.execute({
-      db: { transaction }
+      db: { transaction, delete: createDeleteMock(), all: vi.fn().mockResolvedValue([]) },
+      sharedData: new Map()
     } as any)
 
     expect(result.success).toBe(false)
@@ -1088,17 +1865,168 @@ describe('KnowledgeMigrator execute/validate paths', () => {
 
     const values = vi.fn().mockResolvedValue(undefined)
     const insert = vi.fn().mockReturnValue({ values })
+    const update = createUpdateMock()
     const transaction = vi.fn(async (callback: (tx: any) => Promise<void>) => {
-      await callback({ insert })
+      await callback({ insert, update })
     })
 
     const result = await migrator.execute({
-      db: { transaction }
+      db: { transaction, delete: createDeleteMock(), all: vi.fn().mockResolvedValue([]) },
+      sharedData: new Map()
     } as any)
 
     expect(result.success).toBe(true)
     expect(result.processedCount).toBe(4)
     expect(transaction).toHaveBeenCalledTimes(2)
+    expect(update).not.toHaveBeenCalled()
+  })
+
+  it('execute skips file copy for synthesized directory children and keeps their virtual relativePath', async () => {
+    // Synthesized directory children live at their external data.source (never copied into the
+    // base), so copyKnowledgeFilesForBase must skip them: no storage-name lookup, no "missing a
+    // storage name" warning, and their virtual relativePath (own id) is preserved through execute.
+    const migrator = new KnowledgeMigrator() as any
+    vi.spyOn(migrator, 'resolveDimensionsForBase').mockResolvedValue({ dimensions: 1024, reason: 'ok' })
+    vi.spyOn(migrator, 'loadLoaderSourceMap').mockResolvedValue({
+      kind: 'loaded',
+      sources: new Map([
+        ['loader-dir-a', '/docs/a.md'],
+        ['loader-dir-b', '/docs/b.md']
+      ])
+    })
+
+    await migrator.prepare({
+      paths: { knowledgeBaseDir: '/mock/userData/Data/KnowledgeBase' },
+      sources: {
+        reduxState: {
+          getCategory: vi.fn().mockReturnValue({
+            bases: [
+              {
+                id: 'kb-dir',
+                name: 'KB dir',
+                model: { id: 'BAAI/bge-m3', name: 'BAAI/bge-m3', provider: 'silicon' },
+                items: [
+                  {
+                    id: 'item-directory',
+                    type: 'directory',
+                    content: '/docs',
+                    uniqueId: 'DirectoryLoader_indexed',
+                    uniqueIds: ['loader-dir-a', 'loader-dir-b']
+                  }
+                ]
+              }
+            ]
+          })
+        },
+        dexieExport: { tableExists: vi.fn().mockResolvedValue(false), readTable: vi.fn() }
+      },
+      db: {
+        select: vi.fn().mockReturnValue({ from: vi.fn().mockResolvedValue([{ id: 'silicon::BAAI/bge-m3' }]) })
+      }
+    } as any)
+
+    const childItems = migrator.preparedItems.filter((item: any) => item.type === 'file')
+    expect(childItems).toHaveLength(2)
+
+    const values = vi.fn().mockResolvedValue(undefined)
+    const insert = vi.fn().mockReturnValue({ values })
+    const transaction = vi.fn(async (callback: (tx: any) => Promise<void>) => {
+      await callback({ insert, update: createUpdateMock() })
+    })
+
+    const executeResult = await migrator.execute({
+      paths: { knowledgeBaseDir: '/mock/userData/Data/KnowledgeBase', filesDataDir: '/mock/userData/Data/Files' },
+      db: { transaction, delete: createDeleteMock(), all: vi.fn().mockResolvedValue([]) },
+      sharedData: new Map()
+    } as any)
+
+    expect(executeResult.success).toBe(true)
+    // No storage-name warning for the synthesized children, and the virtual relativePath
+    // (each child's own id) is preserved — the copy/dedup pass was skipped for them.
+    expect(migrator.warnings.some((warning: string) => warning.includes('missing a storage name'))).toBe(false)
+    for (const child of childItems) {
+      expect(child.data.relativePath).toBe(child.id)
+    }
+  })
+
+  it('execute exposes legacy to migrated base and item id remaps for vector migration', async () => {
+    const migrator = new KnowledgeMigrator() as any
+    const migratedBaseId = '11111111-1111-4111-8111-111111111111'
+    const migratedItemId = '0198f3f2-7d1a-7abc-8def-123456789abc'
+    migrator.preparedBases = [
+      {
+        id: migratedBaseId,
+        name: 'KB 1',
+        dimensions: 1024,
+        embeddingModelId: 'silicon::BAAI/bge-m3'
+      }
+    ]
+    migrator.preparedItems = [
+      {
+        id: migratedItemId,
+        baseId: migratedBaseId,
+        groupId: null,
+        type: 'note',
+        data: { source: 'n1', content: 'n1' },
+        status: 'idle',
+        error: null
+      }
+    ]
+    migrator.legacyBaseIdRemap = new Map([['legacy-kb-1', migratedBaseId]])
+    migrator.legacyItemIdRemap = new Map([['legacy-note-1', migratedItemId]])
+    migrator.directoryChildLoaderRemap = new Map([[migratedBaseId, new Map([['loader-dir-a', 'child-a']])]])
+
+    const values = vi.fn().mockResolvedValue(undefined)
+    const insert = vi.fn().mockReturnValue({ values })
+    const update = createUpdateMock()
+    const transaction = vi.fn(async (callback: (tx: any) => Promise<void>) => {
+      await callback({ insert, update })
+    })
+    const sharedData = new Map<string, unknown>()
+
+    const result = await migrator.execute({
+      db: { transaction, delete: createDeleteMock(), all: vi.fn().mockResolvedValue([]) },
+      sharedData
+    } as any)
+
+    expect(result.success).toBe(true)
+    expect(sharedData.get('knowledgeBaseIdRemap')).toEqual(new Map([['legacy-kb-1', migratedBaseId]]))
+    expect(sharedData.get('knowledgeItemIdRemap')).toEqual(new Map([['legacy-note-1', migratedItemId]]))
+    expect(sharedData.get(KNOWLEDGE_DIRECTORY_CHILD_LOADER_REMAP_SHARED_DATA_KEY)).toEqual(
+      new Map([[migratedBaseId, new Map([['loader-dir-a', 'child-a']])]])
+    )
+    expect(update).toHaveBeenCalledTimes(1)
+    expect(update.set).toHaveBeenCalledWith({ knowledgeBaseId: migratedBaseId })
+    expect(update.where).toHaveBeenCalledTimes(1)
+  })
+
+  it('execute drops dangling assistant knowledge base refs after migrating prepared data', async () => {
+    const migrator = new KnowledgeMigrator() as any
+    migrator.preparedBases = [
+      {
+        id: 'kb-1',
+        name: 'KB 1',
+        dimensions: 1024,
+        embeddingModelId: 'silicon::BAAI/bge-m3'
+      }
+    ]
+    migrator.preparedItems = []
+
+    const values = vi.fn().mockResolvedValue(undefined)
+    const insert = vi.fn().mockReturnValue({ values })
+    const transaction = vi.fn(async (callback: (tx: any) => Promise<void>) => {
+      await callback({ insert, update: createUpdateMock() })
+    })
+    const deleteMock = createDeleteMock()
+
+    const result = await migrator.execute({
+      db: { transaction, delete: deleteMock, all: vi.fn().mockResolvedValue([]) },
+      sharedData: new Map()
+    } as any)
+
+    expect(result.success).toBe(true)
+    expect(deleteMock).toHaveBeenCalledTimes(1)
+    expect(deleteMock.where).toHaveBeenCalledTimes(1)
   })
 
   it('execute writes recoverable failed bases and their items', async () => {
@@ -1108,7 +2036,6 @@ describe('KnowledgeMigrator execute/validate paths', () => {
         id: 'kb-missing-model',
         name: 'Missing Model KB',
         groupId: null,
-        emoji: '📁',
         dimensions: 768,
         embeddingModelId: null,
         status: 'failed',
@@ -1133,7 +2060,6 @@ describe('KnowledgeMigrator execute/validate paths', () => {
         type: 'note',
         data: { source: 'note', content: 'note' },
         status: 'idle',
-        phase: null,
         error: null,
         createdAt: 1775114958369,
         updatedAt: 1775114958369
@@ -1146,11 +2072,12 @@ describe('KnowledgeMigrator execute/validate paths', () => {
     })
     const insert = vi.fn().mockReturnValue({ values })
     const transaction = vi.fn(async (callback: (tx: any) => Promise<void>) => {
-      await callback({ insert })
+      await callback({ insert, update: createUpdateMock() })
     })
 
     const result = await migrator.execute({
-      db: { transaction }
+      db: { transaction, delete: createDeleteMock(), all: vi.fn().mockResolvedValue([]) },
+      sharedData: new Map()
     } as any)
 
     expect(result.success).toBe(true)
@@ -1214,11 +2141,11 @@ describe('KnowledgeMigrator execute/validate paths', () => {
       .mockRejectedValueOnce(new Error('second base failed'))
     const insert = vi.fn().mockReturnValue({ values })
     const transaction = vi.fn(async (callback: (tx: any) => Promise<void>) => {
-      await callback({ insert })
+      await callback({ insert, update: createUpdateMock() })
     })
 
     const result = await migrator.execute({
-      db: { transaction }
+      db: { transaction, delete: createDeleteMock(), all: vi.fn().mockResolvedValue([]) }
     } as any)
 
     expect(result.success).toBe(false)
@@ -1302,27 +2229,15 @@ describe('KnowledgeMigrator execute/validate paths', () => {
   })
 })
 
-describe('KnowledgeMigrator file_ref creation', () => {
+describe('KnowledgeMigrator file item path storage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })
 
-  /**
-   * Build a minimal ctx mock that captures insert calls made outside the
-   * knowledge-base transaction (i.e. the file_ref inserts).
-   *
-   * Per migration-plan §2.9 the v1 file id is preserved verbatim into v2, so
-   * file_ref.fileEntryId is just the legacyFileId — no idRemap lookup.
-   */
   function makeExecCtx() {
     const sharedData = new Map<string, unknown>()
-
-    // file_ref rows are uniquely identifiable by their `fileEntryId` field —
-    // knowledge_base / knowledge_item rows never carry it.
     const insertedInsideTx: unknown[] = []
     const insertedOutsideTx: unknown[] = []
-    const isFileRefRow = (r: unknown): r is Record<string, unknown> =>
-      !!r && typeof r === 'object' && 'fileEntryId' in r
 
     const makeInsertFn = (bucket: unknown[]) =>
       vi.fn((/* _table */) => ({
@@ -1334,89 +2249,27 @@ describe('KnowledgeMigrator file_ref creation', () => {
 
     const outerInsert = makeInsertFn(insertedOutsideTx)
     const txInsert = makeInsertFn(insertedInsideTx)
+    const update = vi.fn().mockReturnValue({
+      set: vi.fn().mockReturnValue({ where: vi.fn().mockResolvedValue(undefined) })
+    })
+    const deleteMock = vi.fn().mockReturnValue({ where: vi.fn().mockResolvedValue(undefined) })
 
     const transaction = vi.fn(async (callback: (tx: any) => Promise<void>) => {
-      await callback({ insert: txInsert })
+      await callback({ insert: txInsert, update })
     })
 
     const logger = { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }
 
     return {
       sharedData,
-      db: { transaction, insert: outerInsert },
+      db: { transaction, insert: outerInsert, delete: deleteMock, all: vi.fn().mockResolvedValue([]) },
       logger,
       insertedInsideTx,
-      insertedOutsideTx,
-      get fileRefInserts() {
-        return [...insertedInsideTx, ...insertedOutsideTx].filter(isFileRefRow)
-      },
-      get fileRefInsertsInsideTx() {
-        return insertedInsideTx.filter(isFileRefRow)
-      }
+      insertedOutsideTx
     }
   }
 
-  it('creates one file_ref row for a knowledge item with a fileId (id preserved verbatim)', async () => {
-    const legacyFileId = 'legacy-file-001'
-    const ctx = makeExecCtx()
-
-    const migrator = new KnowledgeMigrator() as any
-    migrator.preparedBases = [{ id: 'kb-1', name: 'KB 1', dimensions: 512, embeddingModelId: 'openai::emb' }]
-    migrator.preparedItems = [
-      {
-        id: 'item-file-1',
-        baseId: 'kb-1',
-        groupId: null,
-        type: 'file',
-        data: { source: '/tmp/foo.pdf', file: { id: legacyFileId, name: 'foo.pdf' } },
-        status: 'idle'
-      }
-    ]
-    vi.spyOn(migrator, 'loadMigratedFileEntryIds').mockResolvedValue(new Set([legacyFileId]))
-
-    const result = await migrator.execute({ db: ctx.db, sharedData: ctx.sharedData, logger: ctx.logger } as any)
-
-    expect(result.success).toBe(true)
-    expect(ctx.fileRefInserts).toHaveLength(1)
-    expect(ctx.fileRefInserts[0]).toMatchObject({
-      fileEntryId: legacyFileId,
-      sourceType: 'knowledge_item',
-      sourceId: 'item-file-1',
-      role: 'source'
-    })
-    expect(typeof ctx.fileRefInserts[0].id).toBe('string')
-  })
-
-  it('skips file_ref creation for a knowledge item without a fileId and records a bucketed warning', async () => {
-    const ctx = makeExecCtx()
-    loggerWarnMock.mockClear()
-
-    const migrator = new KnowledgeMigrator() as any
-    migrator.preparedBases = [{ id: 'kb-1', name: 'KB 1', dimensions: 512, embeddingModelId: 'openai::emb' }]
-    migrator.preparedItems = [
-      {
-        id: 'item-file-missing',
-        baseId: 'kb-1',
-        groupId: null,
-        type: 'file',
-        data: { source: '/tmp/bar.pdf' },
-        status: 'idle'
-      }
-    ]
-
-    const result = await migrator.execute({ db: ctx.db, sharedData: ctx.sharedData, logger: ctx.logger } as any)
-
-    expect(result.success).toBe(true)
-    expect(ctx.fileRefInserts).toHaveLength(0)
-    const summaryCall = loggerWarnMock.mock.calls.find(
-      ([msg]) => typeof msg === 'string' && msg.includes('knowledge_item_missing_file_id')
-    )
-    expect(summaryCall).toBeDefined()
-    expect(summaryCall![0]).toContain('count=1')
-    expect(summaryCall![0]).toContain('item-file-missing')
-  })
-
-  it('creates one file_ref per file item; skips non-file types', async () => {
+  it('inserts file items with knowledge-owned relative paths and no file_ref rows', async () => {
     const ctx = makeExecCtx()
 
     const migrator = new KnowledgeMigrator() as any
@@ -1427,7 +2280,7 @@ describe('KnowledgeMigrator file_ref creation', () => {
         baseId: 'kb-1',
         groupId: null,
         type: 'file',
-        data: { source: '/tmp/a.pdf', file: { id: 'legacy-a', name: 'a.pdf' } },
+        data: { source: '/tmp/a.pdf', relativePath: 'a.pdf' },
         status: 'idle'
       },
       {
@@ -1435,7 +2288,7 @@ describe('KnowledgeMigrator file_ref creation', () => {
         baseId: 'kb-1',
         groupId: null,
         type: 'file',
-        data: { source: '/tmp/b.pdf', file: { id: 'legacy-b', name: 'b.pdf' } },
+        data: { source: '/tmp/b.pdf', relativePath: 'b.pdf', indexedRelativePath: 'b.md' },
         status: 'idle'
       },
       {
@@ -1447,47 +2300,28 @@ describe('KnowledgeMigrator file_ref creation', () => {
         status: 'idle'
       }
     ]
-    vi.spyOn(migrator, 'loadMigratedFileEntryIds').mockResolvedValue(new Set(['legacy-a', 'legacy-b']))
 
     const result = await migrator.execute({ db: ctx.db, sharedData: ctx.sharedData, logger: ctx.logger } as any)
 
     expect(result.success).toBe(true)
-    expect(ctx.fileRefInserts).toHaveLength(2)
-    const refSourceIds = ctx.fileRefInserts.map((r) => r.sourceId).sort()
-    expect(refSourceIds).toEqual(['item-a', 'item-b'])
-    const refFileEntryIds = ctx.fileRefInserts.map((r) => r.fileEntryId).sort()
-    expect(refFileEntryIds).toEqual(['legacy-a', 'legacy-b'])
-  })
-
-  it('inserts file_ref rows inside the per-base transaction (atomic with base + items)', async () => {
-    const ctx = makeExecCtx()
-
-    const migrator = new KnowledgeMigrator() as any
-    migrator.preparedBases = [{ id: 'kb-1', name: 'KB 1', dimensions: 512, embeddingModelId: 'openai::emb' }]
-    migrator.preparedItems = [
-      {
-        id: 'item-a',
-        baseId: 'kb-1',
-        groupId: null,
-        type: 'file',
-        data: { source: '/tmp/a.pdf', file: { id: 'legacy-a', name: 'a.pdf' } },
-        status: 'idle'
-      }
-    ]
-    vi.spyOn(migrator, 'loadMigratedFileEntryIds').mockResolvedValue(new Set(['legacy-a']))
-
-    await migrator.execute({ db: ctx.db, sharedData: ctx.sharedData, logger: ctx.logger } as any)
-
-    // file_ref must appear in the per-base transaction, not via outer db.insert,
-    // so base + items + refs commit atomically (if file_ref fails, base is rolled
-    // back and the next run retries everything cleanly).
-    expect(ctx.fileRefInsertsInsideTx).toHaveLength(1)
+    expect(result.processedCount).toBe(4)
+    expect(ctx.insertedInsideTx).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'item-a',
+          data: { source: '/tmp/a.pdf', relativePath: 'a.pdf' }
+        }),
+        expect.objectContaining({
+          id: 'item-b',
+          data: { source: '/tmp/b.pdf', relativePath: 'b.pdf', indexedRelativePath: 'b.md' }
+        })
+      ])
+    )
     expect(ctx.insertedOutsideTx).toHaveLength(0)
   })
 
-  it('skips file_ref creation when legacyFileId is absent from v2 file_entry (dangling guard)', async () => {
+  it('keeps file item remaps without requiring v2 file_entry rows', async () => {
     const ctx = makeExecCtx()
-    loggerWarnMock.mockClear()
 
     const migrator = new KnowledgeMigrator() as any
     migrator.preparedBases = [{ id: 'kb-1', name: 'KB 1', dimensions: 512, embeddingModelId: 'openai::emb' }]
@@ -1497,45 +2331,39 @@ describe('KnowledgeMigrator file_ref creation', () => {
         baseId: 'kb-1',
         groupId: null,
         type: 'file',
-        data: { source: '/tmp/ok.pdf', file: { id: 'legacy-survivor', name: 'ok.pdf' } },
+        data: { source: '/tmp/ok.pdf', relativePath: 'ok.pdf' },
         status: 'idle'
       },
       {
-        id: 'item-skipped-by-filemigrator',
+        id: 'item-skipped-file-entry',
         baseId: 'kb-1',
         groupId: null,
         type: 'file',
-        data: { source: '/tmp/bad.xyz', file: { id: 'legacy-skipped', name: 'bad.xyz' } },
-        status: 'idle'
-      },
-      {
-        id: 'item-orphan-ref',
-        baseId: 'kb-1',
-        groupId: null,
-        type: 'file',
-        data: { source: '/tmp/ghost.pdf', file: { id: 'legacy-ghost', name: 'ghost.pdf' } },
+        data: { source: '/tmp/bad.xyz', relativePath: 'bad.xyz' },
         status: 'idle'
       }
     ]
-    // Only legacy-survivor exists in v2 file_entry; the other two are dangling
-    // (legacy-skipped was dropped by FileMigrator; legacy-ghost never existed).
-    vi.spyOn(migrator, 'loadMigratedFileEntryIds').mockResolvedValue(new Set(['legacy-survivor']))
+    migrator.legacyItemIdRemap = new Map([
+      ['legacy-item-survivor', 'item-survivor'],
+      ['legacy-item-skipped', 'item-skipped-file-entry']
+    ])
 
     const result = await migrator.execute({ db: ctx.db, sharedData: ctx.sharedData, logger: ctx.logger } as any)
 
     expect(result.success).toBe(true)
-    expect(ctx.fileRefInserts).toHaveLength(1)
-    expect(ctx.fileRefInserts[0]).toMatchObject({
-      fileEntryId: 'legacy-survivor',
-      sourceId: 'item-survivor'
-    })
-    const summaryCall = loggerWarnMock.mock.calls.find(
-      ([msg]) => typeof msg === 'string' && msg.includes('knowledge_item_dangling_file_entry')
+    expect(result.processedCount).toBe(3)
+    expect(ctx.insertedInsideTx).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'item-survivor' }),
+        expect.objectContaining({ id: 'item-skipped-file-entry' })
+      ])
     )
-    expect(summaryCall).toBeDefined()
-    expect(summaryCall![0]).toContain('count=2')
-    // Sample messages should mention both dangling item ids (limit=3 so both fit).
-    expect(summaryCall![0]).toContain('item-skipped-by-filemigrator')
-    expect(summaryCall![0]).toContain('item-orphan-ref')
+    expect(ctx.sharedData.get('knowledgeItemIdRemap')).toEqual(
+      new Map([
+        ['legacy-item-survivor', 'item-survivor'],
+        ['legacy-item-skipped', 'item-skipped-file-entry']
+      ])
+    )
+    expect(ctx.insertedOutsideTx).toHaveLength(0)
   })
 })

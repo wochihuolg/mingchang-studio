@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 
 import type { FileEntryId } from '@shared/data/types/file'
-import type { FilePath } from '@shared/file/types'
+import type { FilePath } from '@shared/types/file'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('@application', async () => {
@@ -73,7 +73,7 @@ describe('createDirectoryWatcher', () => {
     const target = path.join(dir, 'note.txt') as FilePath
     danglingCache.addEntry('e-w-add' as FileEntryId, target)
 
-    const w = createDirectoryWatcher(dir as FilePath, { stabilityThresholdMs: 0 })
+    const w = createDirectoryWatcher(dir as FilePath)
     await waitForReady(w)
     await writeFile(target, 'hello')
     const ev = await waitForEvent(w, (e) => e.kind === 'add' && e.path === target)
@@ -175,13 +175,9 @@ describe('createDirectoryWatcher', () => {
       // `canonicalizeExternalPath` which already lands NFC. Mirror that here.
       danglingCache.addEntry('e-w-nfd' as FileEntryId, canonicalPath)
 
-      const w = createDirectoryWatcher(dir as FilePath, { stabilityThresholdMs: 0 })
-      await waitForReady(w) // `waitForReady` already includes the post-ready settle
+      const w = createDirectoryWatcher(dir as FilePath)
+      await waitForReady(w)
       await writeFile(writtenPath, 'hello')
-      // The emitted event still carries the raw OS path (NFD) — the cache leg
-      // alone is normalized, so external subscribers see what the FS sees.
-      // Extra budget (30s) absorbs CI runner stalls beyond the default 15s;
-      // the test itself completes in milliseconds on a hot path.
       const ev = await waitForEvent(w, (e) => e.kind === 'add' && e.path?.endsWith('.txt'), 30_000)
       if (ev.kind !== 'add') throw new Error('expected add event')
       expect(ev.path).toBe(writtenPath)

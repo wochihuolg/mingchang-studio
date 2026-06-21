@@ -14,8 +14,8 @@
  * - v2 Refactor PR   : https://github.com/CherryHQ/cherry-studio/pull/10162
  * --------------------------------------------------------------------------
  */
-import { ZOOM_SHORTCUTS } from '@shared/config/constant'
-import type { Shortcut } from '@types'
+import type { Shortcut } from '@main/data/migration/v2/legacyTypes'
+import { ZOOM_SHORTCUTS } from '@shared/utils/shortcut'
 import Store from 'electron-store'
 
 export enum ConfigKeys {
@@ -180,7 +180,7 @@ export class ConfigManager {
   // }
 
   // getEnableDataCollection(): boolean {
-  //   return this.get<boolean>(ConfigKeys.EnableDataCollection, true)
+  //   return this.get<boolean>(ConfigKeys.EnableDataCollection, false)
   // }
 
   // setEnableDataCollection(value: boolean) {

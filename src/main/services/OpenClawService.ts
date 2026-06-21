@@ -7,16 +7,16 @@ import path from 'node:path'
 
 import { application } from '@application'
 import { loggerService } from '@logger'
-import { isWin } from '@main/constant'
 import { BaseService, DependsOn, Injectable, Phase, ServicePhase } from '@main/core/lifecycle'
+import { isWin } from '@main/core/platform'
 import { WindowType } from '@main/core/window/types'
+import type { Model, Provider, ProviderType, VertexProvider } from '@main/data/migration/v2/legacyTypes'
 import { isUserInChina } from '@main/utils/ipService'
 import { crossPlatformSpawn, findExecutableInEnv, getBinaryPath, runInstallScript } from '@main/utils/process'
 import getShellEnv, { refreshShellEnv } from '@main/utils/shell-env'
-import type { OperationResult } from '@shared/config/types'
 import { IpcChannel } from '@shared/IpcChannel'
-import { formatApiHost, hasAPIVersion, withoutTrailingSlash } from '@shared/utils'
-import type { Model, Provider, ProviderType, VertexProvider } from '@types'
+import type { OperationResult } from '@shared/types/codeTools'
+import { formatApiHost, hasAPIVersion, withoutTrailingSlash } from '@shared/utils/api'
 
 import { vertexAiService } from './VertexAiService'
 
@@ -749,11 +749,13 @@ export class OpenClawService extends BaseService {
     if (!this.gatewayAuthToken) {
       this.loadAuthTokenFromConfig()
     }
-    if (!this.gatewayAuthToken) {
-      throw new Error('OpenClaw dashboard auth token is missing')
+    let url = `http://127.0.0.1:${this.gatewayPort}`
+    if (this.gatewayAuthToken) {
+      // Use query string (not URL fragment) so dashboard app state can persist correctly.
+      // Fragment (#...) is often used by SPAs for transient client-side state.
+      url += `#token=${encodeURIComponent(this.gatewayAuthToken)}`
     }
-    const url = `http://127.0.0.1:${this.gatewayPort}`
-    return `${url}#token=${encodeURIComponent(this.gatewayAuthToken)}`
+    return url
   }
 
   /**

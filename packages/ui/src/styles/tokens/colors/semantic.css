@@ -49,8 +49,34 @@
   --cs-ghost-active: oklch(0 0 0 / 0.1); /* Ghost Button Active */
 
   /* Sidebar */
-  --cs-sidebar: var(--cs-white);
+  --cs-sidebar: oklch(0.9672 0 0);
   --cs-sidebar-accent: oklch(0 0 0 / 0.05);
+
+  /* Surface-paired foregrounds — all neutral surfaces share the app foreground.
+   * These tokens exist so Tailwind utilities like `text-card-foreground`,
+   * `text-popover-foreground`, `text-secondary-foreground`, `text-accent-foreground`
+   * resolve to a defined value instead of falling back to inheritance. */
+  --cs-card-foreground: var(--cs-foreground);
+  --cs-popover-foreground: var(--cs-foreground);
+  --cs-secondary-foreground: var(--cs-foreground);
+  --cs-accent-foreground: var(--cs-foreground);
+
+  /* Inverted foregrounds — used on solid colored fills (primary/destructive buttons).
+   * Kept as pure white so they stay legible regardless of light/dark mode shifts on the fill. */
+  --cs-primary-foreground: var(--cs-white);
+  --cs-destructive-foreground: var(--cs-white);
+
+  /* Input border — mirrors the app border so input outlines match neighbouring dividers. */
+  --cs-input: var(--cs-border);
+
+  /* Sidebar sub-palette — mirrors app-level neutrals so the sidebar zone stays consistent
+   * without introducing a separate chromatic scale. */
+  --cs-sidebar-foreground: var(--cs-foreground);
+  --cs-sidebar-primary: var(--cs-secondary);
+  --cs-sidebar-primary-foreground: var(--cs-foreground);
+  --cs-sidebar-accent-foreground: var(--cs-foreground);
+  --cs-sidebar-border: var(--cs-border);
+  --cs-sidebar-ring: var(--cs-ring);
 }
 
 /* Dark Mode */
@@ -60,7 +86,7 @@
   --cs-info: var(--cs-blue-400);
 
   /* Background & Foreground */
-  --cs-background: oklch(0.191 0 0 / 0.55);
+  --cs-background: oklch(0.209 0 0 / 0.55);
   --cs-background-subtle: oklch(1 0 0 / 0.02);
   --cs-foreground: oklch(1 0 0 / 0.9);
   --cs-foreground-secondary: oklch(1 0 0 / 0.6);
@@ -94,6 +120,6 @@
   --cs-ghost-active: oklch(1 0 0 / 0.15); /* Ghost Button Active */
 
   /* Sidebar */
-  --cs-sidebar: var(--cs-black);
+  --cs-sidebar: oklch(0.2393 0 0);
   --cs-sidebar-accent: oklch(1 0 0 / 0.1);
 }

@@ -138,6 +138,7 @@ import { remove as fsRemove, stat as fsStat } from '@main/utils/file/fs'
 import type { DanglingState, FileEntry, FileEntryId } from '@shared/data/types/file'
 import { AbsolutePathSchema, FileEntryIdSchema } from '@shared/data/types/file'
 import { SafeExtSchema, SafeNameSchema } from '@shared/data/types/file/essential'
+import { IpcChannel } from '@shared/IpcChannel'
 import type {
   BatchCreateResult,
   BatchMutationResult,
@@ -146,10 +147,9 @@ import type {
   FilePath,
   FileURLString,
   PhysicalFileMetadata
-} from '@shared/file/types'
-import type { FileHandle } from '@shared/file/types/handle'
-import { FileHandleSchema } from '@shared/file/types/handle'
-import { IpcChannel } from '@shared/IpcChannel'
+} from '@shared/types/file'
+import type { FileHandle } from '@shared/types/file/handle'
+import { FileHandleSchema } from '@shared/types/file/handle'
 import mime from 'mime'
 import * as z from 'zod'
 
@@ -411,7 +411,7 @@ export interface IFileManager {
    * that type-gates which of `name`/`ext` each content source may supply —
    * fields derivable from the source are **absent** from the branch; only
    * non-derivable fields (e.g. `name` for base64 / bytes, `ext` for bytes) are
-   * exposed. See `@shared/file/types/ipc.ts` for the full matrix.
+   * exposed. See `@shared/types/file/ipc.ts` for the full matrix.
    *
    * FileManager resolves the derived fields, writes bytes to
    * `{userData}/Data/Files/{newUuid}.{ext}`, and inserts a fresh DB row. No
@@ -690,6 +690,16 @@ export class FileManager extends BaseService implements IFileManager {
     this.ipcHandle(IpcChannel.File_BatchGetDanglingStates, async (_e, params: unknown) =>
       this.batchGetDanglingStates(BatchGetDanglingStatesIpcSchema.parse(params))
     )
+    this.ipcHandle(IpcChannel.File_GetMetadata, async (_e, params: unknown) => {
+      const handle = FileHandleSchema.parse(params) as FileHandle
+      return dispatchHandle(
+        handle,
+        async () => {
+          throw new Error('getMetadata(FileEntryHandle) is not yet wired (@phase 2)')
+        },
+        (path) => this.getMetadataByPath(path)
+      )
+    })
     // Phase 2 channels.
     //
     // Zod outputs the structural shapes (`{ path: string }`, `{ kind: 'path';
@@ -897,6 +907,21 @@ export class FileManager extends BaseService implements IFileManager {
     const entry = await this.deps.fileEntryService.getById(id)
     const physicalPath = resolvePhysicalPath(entry)
     return pathToFileURL(physicalPath).toString() as FileURLString
+  }
+
+  private async getMetadataByPath(path: FilePath): Promise<PhysicalFileMetadata> {
+    const s = await fsStat(path)
+    if (s.isDirectory) {
+      return { kind: 'directory', size: s.size, createdAt: s.createdAt || s.modifiedAt, modifiedAt: s.modifiedAt }
+    }
+    return {
+      kind: 'file',
+      type: 'other',
+      size: s.size,
+      createdAt: s.createdAt || s.modifiedAt,
+      modifiedAt: s.modifiedAt,
+      mime: mime.getType(path) ?? 'application/octet-stream'
+    }
   }
 
   async getPhysicalPath(id: FileEntryId): Promise<FilePath> {

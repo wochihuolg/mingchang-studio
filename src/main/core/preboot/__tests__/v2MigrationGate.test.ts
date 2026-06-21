@@ -47,7 +47,11 @@ const checkUpgradePathMock = vi.fn()
 const readPreviousVersionMock = vi.fn()
 const getBlockMessageMock = vi.fn()
 
-const defaultMigrationPaths = { userData: '/mock/userData', versionLogFile: '/mock/version.log' }
+const defaultMigrationPaths = {
+  userData: '/mock/userData',
+  versionLogFile: '/mock/version.log',
+  databaseFile: '/mock/userData/cherrystudio.sqlite'
+}
 const defaultResolveResult = { paths: defaultMigrationPaths, userDataChanged: false, inaccessibleLegacyPath: null }
 
 function stubMigrationV2() {
@@ -108,6 +112,16 @@ function stubFs() {
     __esModule: true,
     default: { existsSync: existsSyncMock }
   }))
+}
+
+function stubPlatform(isDev: boolean) {
+  vi.doMock('@main/core/platform', () => ({ isDev }))
+}
+
+/** Build the wrapped libsql SQLITE_ERROR thrown when a stale DB meets fresh migration SQL. */
+function schemaOutOfSyncError(): Error {
+  const inner = Object.assign(new Error('table `agent` already exists'), { code: 'SQLITE_ERROR' })
+  return Object.assign(new Error('SQLITE_ERROR: table `agent` already exists'), { code: 'SQLITE_ERROR', cause: inner })
 }
 
 async function loadModule() {
@@ -219,6 +233,7 @@ describe('runV2MigrationGate', () => {
       stubMigrationV2()
       stubElectron()
       stubApplication()
+      stubPlatform(false)
 
       const { runV2MigrationGate } = await loadModule()
       const result = await runV2MigrationGate()
@@ -227,8 +242,11 @@ describe('runV2MigrationGate', () => {
       expect(whenReadyMock).toHaveBeenCalledTimes(1)
       expect(showErrorBoxMock).toHaveBeenCalledTimes(1)
       const [title, message] = showErrorBoxMock.mock.calls[0]
-      expect(title).toContain('Migration Status Check Failed')
+      expect(title).toContain('Migration Failed')
+      expect(title).not.toContain('(Dev)')
       expect(message).toContain('DB unavailable')
+      // Regression: the old fallback mislabeled every failure as a DB "connectivity issue".
+      expect(message).not.toContain('connectivity')
       expect(appQuitMock).toHaveBeenCalledTimes(1)
       // Migration path was never taken, so handlers stay un-touched.
       expect(registerMigrationIpcHandlersMock).not.toHaveBeenCalled()
@@ -248,6 +266,66 @@ describe('runV2MigrationGate', () => {
 
       expect(result).toBe('handled')
       expect(showErrorBoxMock).toHaveBeenCalledTimes(1)
+      expect(appQuitMock).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  describe('handled path — schema out of sync (dev)', () => {
+    it('shows the dev reset dialog with the DB path and quits when running in dev', async () => {
+      initializeMock.mockRejectedValue(schemaOutOfSyncError())
+      stubMigrationV2()
+      stubElectron()
+      stubApplication()
+      stubPlatform(true)
+
+      const { runV2MigrationGate } = await loadModule()
+      const result = await runV2MigrationGate()
+
+      expect(result).toBe('handled')
+      expect(showErrorBoxMock).toHaveBeenCalledTimes(1)
+      const [title, message] = showErrorBoxMock.mock.calls[0]
+      expect(title).toContain('Database Schema Out of Sync')
+      expect(message).toContain('/mock/userData/cherrystudio.sqlite')
+      expect(appQuitMock).toHaveBeenCalledTimes(1)
+    })
+
+    it('falls back to the neutral production dialog when the schema is out of sync but not in dev', async () => {
+      initializeMock.mockRejectedValue(schemaOutOfSyncError())
+      stubMigrationV2()
+      stubElectron()
+      stubApplication()
+      stubPlatform(false)
+
+      const { runV2MigrationGate } = await loadModule()
+      const result = await runV2MigrationGate()
+
+      expect(result).toBe('handled')
+      const [title, message] = showErrorBoxMock.mock.calls[0]
+      expect(title).toContain('Migration Failed')
+      // Production must NOT get the dev variant nor any "delete the DB" instruction.
+      expect(title).not.toContain('(Dev)')
+      expect(message).not.toContain('rm -f')
+      expect(appQuitMock).toHaveBeenCalledTimes(1)
+    })
+
+    it('shows the dev migration-failed dialog (both causes + DB path) for non-schema errors in dev', async () => {
+      initializeMock.mockRejectedValue(new Error('DB unavailable'))
+      stubMigrationV2()
+      stubElectron()
+      stubApplication()
+      stubPlatform(true)
+
+      const { runV2MigrationGate } = await loadModule()
+      const result = await runV2MigrationGate()
+
+      expect(result).toBe('handled')
+      const [title, message] = showErrorBoxMock.mock.calls[0]
+      expect(title).toContain('Migration Failed (Dev)')
+      expect(message).toContain('DB unavailable')
+      // Dev surfaces BOTH possibilities (incompatible data vs migration bug) + the DB path,
+      // and explicitly does NOT assert "just delete the DB".
+      expect(message).toContain('/mock/userData/cherrystudio.sqlite')
+      expect(message).toContain('Do NOT just delete the DB')
       expect(appQuitMock).toHaveBeenCalledTimes(1)
     })
   })

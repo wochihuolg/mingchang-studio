@@ -122,11 +122,9 @@ export default defineConfig([
       '.gitignore',
       '.conductor/**',
       'scripts/cloudflare-worker.js',
-      'src/main/integration/nutstore/sso/lib/**',
-      'src/main/integration/cherryai/index.js',
-      'src/main/integration/nutstore/sso/lib/**',
-      'src/renderer/src/ui/**',
-      'src/renderer/src/routeTree.gen.ts',
+      'src/main/services/nutstore/sso/lib/**',
+      'src/renderer/ui/**',
+      'src/renderer/routeTree.gen.ts',
       'packages/**/dist',
       'v2-refactor-temp/**'
     ]
@@ -314,13 +312,56 @@ export default defineConfig([
       ]
     }
   },
+  {
+    // Bundle guard: the IpcApi zod schema *values* must never enter the renderer
+    // bundle. Renderer code may only `import type` from the schema modules.
+    files: ['src/renderer/**/*.{ts,tsx,js,jsx}'],
+    ignores: ['src/renderer/**/*.test.*', 'src/renderer/**/__tests__/**', 'src/renderer/**/__mocks__/**'],
+    rules: {
+      '@typescript-eslint/no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@shared/ipc/schemas', '@shared/ipc/schemas/*'],
+              allowTypeImports: true,
+              message:
+                'Renderer may only `import type` from @shared/ipc/schemas — a value import pulls the entire zod schema set into the renderer bundle.'
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    // Boundary guard: the main process and preload must not import renderer code.
+    // Cross-process symbols belong in `@shared`; main-only symbols in `src/main`.
+    // (The relative `../../renderer/i18n` imports in src/main/utils/language.ts are
+    // a known remaining violation, deferred to the i18n migration PR — once that
+    // lands, add `**/renderer/**` to the banned group below.)
+    files: ['src/main/**/*.{ts,tsx,js,jsx}', 'src/preload/**/*.{ts,tsx,js,jsx}'],
+    rules: {
+      '@typescript-eslint/no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@types', '@renderer', '@renderer/**'],
+              message:
+                'Main/preload must not import renderer code. Use `@shared` for cross-process types, or `src/main` for main-only types. See docs/references/shared-layer-architecture.md.'
+            }
+          ]
+        }
+      ]
+    }
+  },
   // renderer legacy css var migration warnings
   {
-    files: ['src/renderer/src/**/*.{ts,tsx,js,jsx}'],
+    files: ['src/renderer/**/*.{ts,tsx,js,jsx}'],
     ignores: [
-      'src/renderer/src/**/*.test.*',
-      'src/renderer/src/**/__tests__/**',
-      'src/renderer/src/**/__mocks__/**'
+      'src/renderer/**/*.test.*',
+      'src/renderer/**/__tests__/**',
+      'src/renderer/**/__mocks__/**'
     ],
     plugins: {
       'renderer-styles': {
@@ -373,7 +414,7 @@ export default defineConfig([
       'renderer-styles/no-legacy-css-vars': process.env.NO_LEGACY_CSS_WARN ? 'off' : 'warn'
     }
   },
-  // Schema key naming convention (cache & preferences)
+  // Schema key naming convention (cache, preferences, paths & IPC route/event keys)
   // Supports both fixed keys and template keys:
   // - Fixed: 'app.user.avatar', 'chat.multi_select_mode'
   // - Template: 'scroll.position.${topicId}', 'entity.cache.${type}_${id}'
@@ -381,9 +422,11 @@ export default defineConfig([
   // When ${xxx} placeholders are treated as literal strings, the key must match: xxx.yyy.zzz_www
   {
     files: [
-      'packages/shared/data/cache/cacheSchemas.ts',
-      'packages/shared/data/preference/preferenceSchemas.ts',
-      'src/main/core/paths/pathRegistry.ts'
+      'src/shared/data/cache/cacheSchemas.ts',
+      'src/shared/data/preference/preferenceSchemas.ts',
+      'src/main/core/paths/pathRegistry.ts',
+      // IPC route/event keys — whole dir so future domains are auto-enforced (see ipc-schema-guide.md).
+      'src/shared/ipc/schemas/**/*.ts'
     ],
     plugins: {
       'data-schema-key': {
@@ -473,6 +516,20 @@ export default defineConfig([
                 },
                 Property(node) {
                   if (node.key.type === 'Literal' && typeof node.key.value === 'string') {
+                    // Keys inside a `z.*(...)` object literal are zod data-field names
+                    // (e.g. z.object({ 'content-type': ... })), not route/schema keys, so the
+                    // namespace.action convention does not apply — skip them. Anchored on the
+                    // zod namespace `z`, this covers z.object/z.strictObject/etc. while leaving
+                    // Object.freeze(...) registries (pathRegistry.ts) still validated.
+                    const enclosing = node.parent
+                    if (
+                      enclosing?.parent?.type === 'CallExpression' &&
+                      enclosing.parent.callee?.type === 'MemberExpression' &&
+                      enclosing.parent.callee.object?.type === 'Identifier' &&
+                      enclosing.parent.callee.object.name === 'z'
+                    ) {
+                      return
+                    }
                     const key = node.key.value
                     const result = validateKey(key)
                     if (!result.valid) {

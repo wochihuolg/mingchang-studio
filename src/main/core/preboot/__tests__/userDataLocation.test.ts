@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
  * Tests for src/main/core/preboot/userDataLocation.ts
  *
  * Mocking strategy:
- *   - `@main/constant` exposes module-level booleans (isLinux/isWin/isPortable)
+ *   - `@main/core/platform` exposes module-level booleans (isLinux/isWin/isPortable)
  *     computed at evaluation time. We use `vi.doMock` + `vi.resetModules()` and
  *     dynamically import the module-under-test in each test, so we can swap
  *     platform values per scenario.
@@ -73,7 +73,7 @@ function stubElectron(opts: ElectronStubOptions = {}) {
 }
 
 function stubConstants(flags: PlatformFlags) {
-  vi.doMock('@main/constant', () => ({
+  vi.doMock('@main/core/platform', () => ({
     isLinux: flags.isLinux,
     isWin: flags.isWin,
     isPortable: flags.isPortable,
@@ -217,6 +217,30 @@ describe('resolveUserDataLocation', () => {
       // before any BootConfig lookup, isolating dev data from production
       // config that might have been migrated by a packaged build of the app.
       stubBootConfig({ 'app.user_data_path': { '/mock/exe': '/custom/data' } })
+      stubFs()
+      const { resolveUserDataLocation } = await loadModule()
+      resolveUserDataLocation()
+      expect(setPathMock).toHaveBeenCalledWith('userData', '/mock/userDataDev')
+      expect(setPathMock).toHaveBeenCalledTimes(1)
+    })
+
+    it('app.isPackaged=false: appends configured dev suffix', async () => {
+      vi.stubEnv('CS_DEV_USER_DATA_SUFFIX', 'DevQuito')
+      stubConstants({ isLinux: false, isWin: false, isPortable: false })
+      stubElectron({ isPackaged: false, userData: '/mock/userData' })
+      stubBootConfig()
+      stubFs()
+      const { resolveUserDataLocation } = await loadModule()
+      resolveUserDataLocation()
+      expect(setPathMock).toHaveBeenCalledWith('userData', '/mock/userDataDevQuito')
+      expect(setPathMock).toHaveBeenCalledTimes(1)
+    })
+
+    it('app.isPackaged=false: blank configured dev suffix falls back to Dev', async () => {
+      vi.stubEnv('CS_DEV_USER_DATA_SUFFIX', '   ')
+      stubConstants({ isLinux: false, isWin: false, isPortable: false })
+      stubElectron({ isPackaged: false, userData: '/mock/userData' })
+      stubBootConfig()
       stubFs()
       const { resolveUserDataLocation } = await loadModule()
       resolveUserDataLocation()
