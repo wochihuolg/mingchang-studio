@@ -1,7 +1,9 @@
+import { modelFilterIncludesAgentOnlyProviders } from '@renderer/hooks/agents/useAgentModelFilter'
 import { useModels } from '@renderer/hooks/useModel'
 import { usePins } from '@renderer/hooks/usePins'
 import { useProviders } from '@renderer/hooks/useProvider'
 import { getSearchMatchScore } from '@renderer/utils/modelSearch'
+import { isAgentOnlyProviderId } from '@shared/data/presets/claudeCode'
 import { isUniqueModelId, type Model, parseUniqueModelId, type UniqueModelId } from '@shared/data/types/model'
 import type { Provider } from '@shared/data/types/provider'
 import { sortBy } from 'lodash'
@@ -91,6 +93,10 @@ export function useModelSelectorData({
 
   const baseModelFilter = useCallback((model: Model) => filter?.(model) ?? true, [filter])
 
+  // Agent-only providers (e.g. `claude-code`, login-based, no API key) are hidden
+  // from general selectors; only agent pickers (whose filter is marked) surface them.
+  const includeAgentOnlyProviders = useMemo(() => modelFilterIncludesAgentOnlyProviders(filter), [filter])
+
   const sortedProviders = useMemo(
     () => sortProvidersByPriority(availableProviders, prioritizedProviderIds),
     [availableProviders, prioritizedProviderIds]
@@ -107,6 +113,10 @@ export function useModelSelectorData({
         continue
       }
 
+      if (!includeAgentOnlyProviders && isAgentOnlyProviderId(model.providerId)) {
+        continue
+      }
+
       const existingModels = grouped.get(model.providerId)
       if (existingModels) {
         existingModels.push(model)
@@ -116,7 +126,7 @@ export function useModelSelectorData({
     }
 
     return grouped
-  }, [availableModels, baseModelFilter, sortedProviders])
+  }, [availableModels, baseModelFilter, includeAgentOnlyProviders, sortedProviders])
 
   const availableTags = useMemo(() => {
     const selectableModels = [...modelsByProvider.values()].flat()
