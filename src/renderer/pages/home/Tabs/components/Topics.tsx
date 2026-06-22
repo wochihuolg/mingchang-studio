@@ -97,7 +97,7 @@ const logger = loggerService.withContext('Topics')
 interface Props {
   activeTopic?: Topic
   onNewTopic?: (payload?: AddNewTopicPayload) => void | Promise<void>
-  onOpenHistory?: (origin?: DOMRectReadOnly) => void
+  onOpenHistory?: () => void
   revealRequest?: ResourceListRevealRequest
   setActiveTopic: (topic: Topic) => void
 }
@@ -161,7 +161,7 @@ function TopicListOptionsMenu({
 }: {
   mode: TopicDisplayMode
   onChange: (mode: TopicDisplayMode) => void
-  onOpenHistory?: (origin?: DOMRectReadOnly) => void
+  onOpenHistory?: () => void
   sectionId?: string
 }) {
   const { t } = useTranslation()
@@ -213,8 +213,8 @@ function TopicListOptionsMenu({
                 size="sm"
                 icon={<History size={16} />}
                 label={t('history.records.shortTitle')}
-                onClick={(event) => {
-                  onOpenHistory(event.currentTarget.getBoundingClientRect())
+                onClick={() => {
+                  onOpenHistory()
                   setOpen(false)
                 }}
               />

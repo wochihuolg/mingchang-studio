@@ -92,7 +92,7 @@ import {
 } from './workdirGroupActions'
 
 type SessionsBaseProps = {
-  onOpenHistory?: (origin?: DOMRectReadOnly) => void
+  onOpenHistory?: () => void
   onSelectItem?: () => void
   onStartDraftSession?: (defaults: DraftAgentSessionDefaults) => void | Promise<void>
   onStartMissingAgentDraft?: () => void | Promise<void>
@@ -136,7 +136,7 @@ function SessionListOptionsMenu({
   mode: AgentSessionDisplayMode
   onChange: (mode: AgentSessionDisplayMode) => void
   historyLabel: string
-  onOpenHistory: (origin?: DOMRectReadOnly) => void
+  onOpenHistory: () => void
   sectionId?: string
 }) {
   const { t } = useTranslation()
@@ -188,8 +188,8 @@ function SessionListOptionsMenu({
             size="sm"
             icon={<History size={16} />}
             label={historyLabel}
-            onClick={(event) => {
-              onOpenHistory(event.currentTarget.getBoundingClientRect())
+            onClick={() => {
+              onOpenHistory()
               setOpen(false)
             }}
           />
@@ -626,17 +626,14 @@ const Sessions = ({
       findLatestCreateSessionSeed(groupedSessions, (session) => sessionGroupBy(session)?.id === groupId),
     [groupedSessions, sessionGroupBy]
   )
-  const handleOpenHistoryOrToggleSidebar = useCallback(
-    (origin?: DOMRectReadOnly) => {
-      if (onOpenHistory) {
-        onOpenHistory(origin)
-        return
-      }
+  const handleOpenHistoryOrToggleSidebar = useCallback(() => {
+    if (onOpenHistory) {
+      onOpenHistory()
+      return
+    }
 
-      void setShowSidebar(!showSidebar)
-    },
-    [onOpenHistory, setShowSidebar, showSidebar]
-  )
+    void setShowSidebar(!showSidebar)
+  }, [onOpenHistory, setShowSidebar, showSidebar])
 
   const handleDeleteSession = useCallback(
     async (id: string) => {
