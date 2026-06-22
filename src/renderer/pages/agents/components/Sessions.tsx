@@ -49,9 +49,9 @@ import {
   Clock,
   Folder,
   FolderOpen,
+  History,
   ListFilter,
   MoreHorizontal,
-  PanelLeft,
   SquarePen
 } from 'lucide-react'
 import { memo, type ReactNode, type RefObject, useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -92,6 +92,7 @@ import {
 } from './workdirGroupActions'
 
 type SessionsBaseProps = {
+  onOpenHistory?: (origin?: DOMRectReadOnly) => void
   onSelectItem?: () => void
   onStartDraftSession?: (defaults: DraftAgentSessionDefaults) => void | Promise<void>
   onStartMissingAgentDraft?: () => void | Promise<void>
@@ -128,12 +129,14 @@ type CreateSessionSeed = {
 function SessionListOptionsMenu({
   mode,
   onChange,
-  onToggleSidebar,
+  historyLabel,
+  onOpenHistory,
   sectionId
 }: {
   mode: AgentSessionDisplayMode
   onChange: (mode: AgentSessionDisplayMode) => void
-  onToggleSidebar: () => void
+  historyLabel: string
+  onOpenHistory: (origin?: DOMRectReadOnly) => void
   sectionId?: string
 }) {
   const { t } = useTranslation()
@@ -183,10 +186,10 @@ function SessionListOptionsMenu({
           <MenuDivider />
           <MenuItem
             size="sm"
-            icon={<PanelLeft size={16} />}
-            label={t('settings.shortcuts.toggle_left_sidebar')}
-            onClick={() => {
-              onToggleSidebar()
+            icon={<History size={16} />}
+            label={historyLabel}
+            onClick={(event) => {
+              onOpenHistory(event.currentTarget.getBoundingClientRect())
               setOpen(false)
             }}
           />
@@ -338,6 +341,7 @@ export function findLatestCreateSessionSeed(
 
 const Sessions = ({
   activeSessionId,
+  onOpenHistory,
   onSelectItem,
   onStartDraftSession,
   onStartMissingAgentDraft,
@@ -622,9 +626,17 @@ const Sessions = ({
       findLatestCreateSessionSeed(groupedSessions, (session) => sessionGroupBy(session)?.id === groupId),
     [groupedSessions, sessionGroupBy]
   )
-  const handleToggleSidebar = useCallback(() => {
-    void setShowSidebar(!showSidebar)
-  }, [setShowSidebar, showSidebar])
+  const handleOpenHistoryOrToggleSidebar = useCallback(
+    (origin?: DOMRectReadOnly) => {
+      if (onOpenHistory) {
+        onOpenHistory(origin)
+        return
+      }
+
+      void setShowSidebar(!showSidebar)
+    },
+    [onOpenHistory, setShowSidebar, showSidebar]
+  )
 
   const handleDeleteSession = useCallback(
     async (id: string) => {
@@ -1413,7 +1425,10 @@ const Sessions = ({
             <SessionListOptionsMenu
               mode={displayMode}
               onChange={(nextMode) => void setSessionDisplayMode(nextMode)}
-              onToggleSidebar={handleToggleSidebar}
+              historyLabel={
+                onOpenHistory ? t('history.records.shortTitle') : t('settings.shortcuts.toggle_left_sidebar')
+              }
+              onOpenHistory={handleOpenHistoryOrToggleSidebar}
               sectionId={
                 displayMode === 'agent'
                   ? SESSION_AGENT_SECTION_ID

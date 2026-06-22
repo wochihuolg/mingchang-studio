@@ -23,6 +23,7 @@ import { useCommandHandler } from '@renderer/hooks/command'
 import { useAssistantApiById, useAssistants } from '@renderer/hooks/useAssistant'
 import { useConversationNavigation } from '@renderer/hooks/useConversationNavigation'
 import { mapApiTopicToRendererTopic, useActiveTopic, useTopicById, useTopicMutations } from '@renderer/hooks/useTopic'
+import HistoryRecordsPage from '@renderer/pages/history/HistoryRecordsPage'
 import { EVENT_NAMES, EventEmitter } from '@renderer/services/EventService'
 import type { FileMetadata, Topic } from '@renderer/types'
 import { cn } from '@renderer/utils'
@@ -64,6 +65,8 @@ type DraftChatSendOptions = {
 const HomePage: FC = () => {
   const { t } = useTranslation()
   const draftScopeId = useId()
+  const [historyOpen, setHistoryOpen] = useState(false)
+  const [historyOrigin, setHistoryOrigin] = useState<DOMRectReadOnly>()
   const [topicRevealRequest, setTopicRevealRequest] = useState<ResourceListRevealRequest>()
   const topicRevealRequestIdRef = useRef(0)
   const draftAssistantStartStateRef = useRef<DraftAssistantStartState>({ firstLaunchStarted: false })
@@ -395,6 +398,11 @@ const HomePage: FC = () => {
     }
   }, [])
 
+  const openHistory = useCallback((origin?: DOMRectReadOnly) => {
+    setHistoryOrigin(origin)
+    setHistoryOpen(true)
+  }, [])
+  const closeHistory = useCallback(() => setHistoryOpen(false), [])
   const handleHistoryTopicSelect = useCallback(
     (topic: Topic, messageId?: string) => {
       if (!setActiveTopicAndDiscardDraft(topic)) return
@@ -436,6 +444,17 @@ const HomePage: FC = () => {
     setPendingLocateMessageId(undefined)
   }, [])
 
+  const historyOverlay = (
+    <HistoryRecordsPage
+      mode="assistant"
+      open={historyOpen}
+      activeRecordId={visibleTopic?.id}
+      origin={historyOrigin}
+      onClose={closeHistory}
+      onRecordSelect={handleHistoryTopicSelect}
+    />
+  )
+
   if (!visibleTopic && !draftAssistantSelectionSnapshot) {
     if (isMessageOnlyView) {
       return (
@@ -447,11 +466,12 @@ const HomePage: FC = () => {
               missingTitle={t('history.error.topic_not_found')}
             />
           </ContentContainer>
+          {historyOverlay}
         </Container>
       )
     }
 
-    return <Container id="home-page" />
+    return <Container id="home-page">{historyOverlay}</Container>
   }
 
   const panePosition = 'left'
@@ -459,6 +479,7 @@ const HomePage: FC = () => {
     <HomeTabs
       activeTopic={visibleTopic}
       setActiveTopic={setActiveTopicAndDiscardDraft}
+      onOpenHistory={openHistory}
       onNewTopic={isMessageOnlyView ? undefined : startDraftAssistantSelection}
       revealRequest={topicRevealRequest}
     />
@@ -484,12 +505,13 @@ const HomePage: FC = () => {
             welcomeText={t('chat.home.welcome_title')}
           />
         </ContentContainer>
+        {historyOverlay}
       </Container>
     )
   }
 
   const chatTopic = visibleTopic
-  if (!chatTopic) return <Container id="home-page" />
+  if (!chatTopic) return <Container id="home-page">{historyOverlay}</Container>
 
   return (
     <Container id="home-page">
@@ -508,6 +530,7 @@ const HomePage: FC = () => {
           onLocateMessageHandled={handleLocateMessageHandled}
         />
       </ContentContainer>
+      {historyOverlay}
     </Container>
   )
 }

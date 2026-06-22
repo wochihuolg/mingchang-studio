@@ -50,6 +50,7 @@ import {
   ChevronsDownUp,
   ChevronsUpDown,
   Clock,
+  History,
   ListFilter,
   MoreHorizontal,
   PinIcon,
@@ -96,6 +97,7 @@ const logger = loggerService.withContext('Topics')
 interface Props {
   activeTopic?: Topic
   onNewTopic?: (payload?: AddNewTopicPayload) => void | Promise<void>
+  onOpenHistory?: (origin?: DOMRectReadOnly) => void
   revealRequest?: ResourceListRevealRequest
   setActiveTopic: (topic: Topic) => void
 }
@@ -154,10 +156,12 @@ function resolveAssistantIdForTopicGroup(
 function TopicListOptionsMenu({
   mode,
   onChange,
+  onOpenHistory,
   sectionId
 }: {
   mode: TopicDisplayMode
   onChange: (mode: TopicDisplayMode) => void
+  onOpenHistory?: (origin?: DOMRectReadOnly) => void
   sectionId?: string
 }) {
   const { t } = useTranslation()
@@ -197,6 +201,20 @@ function TopicListOptionsMenu({
                 expandLabel={t('chat.topics.group.expand_all')}
                 collapseLabel={t('chat.topics.group.collapse_all')}
                 onClick={() => {
+                  setOpen(false)
+                }}
+              />
+            </>
+          )}
+          {onOpenHistory && (
+            <>
+              <MenuDivider />
+              <MenuItem
+                size="sm"
+                icon={<History size={16} />}
+                label={t('history.records.shortTitle')}
+                onClick={(event) => {
+                  onOpenHistory(event.currentTarget.getBoundingClientRect())
                   setOpen(false)
                 }}
               />
@@ -253,7 +271,7 @@ function AssistantGroupMoreMenu({
   )
 }
 
-export function Topics({ activeTopic, onNewTopic, revealRequest, setActiveTopic }: Props) {
+export function Topics({ activeTopic, onNewTopic, onOpenHistory, revealRequest, setActiveTopic }: Props) {
   const { t } = useTranslation()
   const tabs = useOptionalTabsContext()
   const conversationNav = useConversationNavigation('assistants')
@@ -1085,6 +1103,7 @@ export function Topics({ activeTopic, onNewTopic, revealRequest, setActiveTopic 
                 <TopicListOptionsMenu
                   mode={displayMode}
                   onChange={(nextMode) => void setTopicDisplayMode(nextMode)}
+                  onOpenHistory={onOpenHistory}
                   sectionId={isAssistantDisplayMode ? TOPIC_ASSISTANT_SECTION_ID : undefined}
                 />
               </>
