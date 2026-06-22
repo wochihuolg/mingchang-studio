@@ -8,6 +8,7 @@ import { getProviderDisplayName, useProviders } from '@renderer/hooks/useProvide
 import type { ToolQuickPanelApi, ToolQuickPanelController } from '@renderer/pages/home/Inputbar/types'
 import type { FileMetadata } from '@renderer/types'
 import { FILE_TYPE } from '@renderer/types'
+import { isAgentOnlyProviderId } from '@shared/data/presets/claudeCode'
 import type { Model } from '@shared/data/types/model'
 import { useNavigate } from '@tanstack/react-router'
 import { Avatar } from 'antd'
@@ -142,6 +143,9 @@ export const useMentionModelsPanel = (params: Params, role: 'button' | 'manager'
     if (pinnedModels.length > 0) {
       const pinnedItems = providers.flatMap((provider) =>
         (modelsByProvider.get(provider.id) ?? [])
+          // Agent-only providers (e.g. claude-code) carry no API key and cannot serve a chat
+          // @-mention; keep them out of this chat/quick-assistant picker.
+          .filter((model) => !isAgentOnlyProviderId(model.providerId))
           .filter((model) => !isEmbeddingModel(model) && !isRerankModel(model))
           .filter((model) => pinnedModels.includes(model.id))
           .filter((model) => couldMentionNotVisionModel || (!couldMentionNotVisionModel && isVisionModel(model)))
@@ -171,6 +175,9 @@ export const useMentionModelsPanel = (params: Params, role: 'button' | 'manager'
     providers.forEach((provider) => {
       const providerModels = sortBy(
         (modelsByProvider.get(provider.id) ?? [])
+          // Agent-only providers (e.g. claude-code) carry no API key and cannot serve a chat
+          // @-mention; keep them out of this chat/quick-assistant picker.
+          .filter((model) => !isAgentOnlyProviderId(model.providerId))
           .filter((model) => !isEmbeddingModel(model) && !isRerankModel(model))
           .filter((model) => !pinnedModels.includes(model.id))
           .filter((model) => couldMentionNotVisionModel || (!couldMentionNotVisionModel && isVisionModel(model))),
