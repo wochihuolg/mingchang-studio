@@ -1,5 +1,5 @@
-appId: com.cherryai.cherrystudio
-productName: Cherry Studio
+﻿appId: com.mingchang.app
+productName: mingchang
 electronLanguages:
   - zh-CN
   - zh-TW
@@ -14,9 +14,9 @@ directories:
   buildResources: build
 
 protocols:
-  - name: Cherry Studio
+  - name: mingchang
     schemes:
-      - cherrystudio
+    - mingchang
 files:
   - "**/*"
   - "!**/{.vscode,.yarn,.yarn-lock,.github,.cursorrules,.prettierrc}"
@@ -80,7 +80,7 @@ extraResources:
   - from: "packages/provider-registry/data"
     to: "provider-registry"
 win:
-  executableName: CherryStudio
+  executableName: mingchang
   artifactName: ${productName}-${version}-${arch}-setup.${ext}
   target:
     - target: nsis
@@ -117,7 +117,7 @@ dmg:
   writeUpdateInfo: false
 linux:
   artifactName: ${productName}-${version}-${arch}.${ext}
-  executableName: CherryStudio
+  executableName: mingchang
   target:
     - target: AppImage
     - target: deb
@@ -126,10 +126,10 @@ linux:
   category: Utility
   desktop:
     entry:
-      Name: Cherry Studio
-      StartupWMClass: CherryStudio
+      name: mingchang
+      StartupWMClass: mingchang
   mimeTypes:
-    - x-scheme-handler/cherrystudio
+    - x-scheme-handler/mingchang
 rpm:
   # Workaround for electron build issue on rpm package:
   # https://github.com/electron/forge/issues/3594
@@ -146,7 +146,7 @@ artifactBuildCompleted: scripts/artifact-build-completed.js
 releaseInfo:
   releaseNotes: |
     <!--LANG:en-->
-    Cherry Studio 1.9.7 - Model Support & Bug Fixes
+    mingchang 1.9.7 - Model Support & Bug Fixes
 
     ✨ New Features
     - [Models] Added support for grok-build-0.1 capabilities (reasoning, tool use, vision)
@@ -165,7 +165,7 @@ releaseInfo:
     - [Providers] Fixed AIHubMix reasoning effort configuration not working properly
 
     <!--LANG:zh-CN-->
-    Cherry Studio 1.9.7 - 模型支持与错误修复
+    mingchang 1.9.7 - 模型支持与错误修复
 
     ✨ 新功能
     - [模型] 支持 grok-build-0.1 模型能力（推理、工具调用、视觉）
