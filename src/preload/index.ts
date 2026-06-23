@@ -49,7 +49,6 @@ import type {
 import type { LogLevel, LogSourceWithContext } from '@shared/types/logger'
 import type { McpServerLogEntry } from '@shared/types/mcp'
 import type { Notification } from '@shared/types/notification'
-import type { OcrProvider, OcrResult, SupportedOcrFile } from '@shared/types/ocr'
 import type { ShortcutPreferenceKey } from '@shared/types/shortcut'
 import type {
   InstalledSkill,
@@ -642,11 +641,6 @@ const api = {
     removeCustomTerminalPath: (terminalId: string): Promise<void> =>
       ipcRenderer.invoke(IpcChannel.CodeCli_RemoveCustomTerminalPath, terminalId),
     checkClaudeLogin: (): Promise<boolean> => ipcRenderer.invoke(IpcChannel.CodeCli_CheckClaudeLogin)
-  },
-  ocr: {
-    ocr: (file: SupportedOcrFile, provider: OcrProvider): Promise<OcrResult> =>
-      ipcRenderer.invoke(IpcChannel.OCR_ocr, file, provider),
-    listProviders: (): Promise<string[]> => ipcRenderer.invoke(IpcChannel.OCR_ListProviders)
   },
   cherryai: {
     generateSignature: (params: { method: string; path: string; query: string; body: Record<string, any> }) =>
