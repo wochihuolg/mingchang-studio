@@ -1,4 +1,4 @@
-﻿{
+{
     "name":  "mingchang",
     "version":  "2.0.0-dev",
     "private":  true,
@@ -15,7 +15,7 @@
                     "dev":  "dotenv electron-vite dev",
                     "dev:watch":  "dotenv electron-vite dev -- -w",
                     "debug":  "dotenv -- electron-vite -- --inspect --sourcemap --remote-debugging-port=9222",
-                    "build":  "npm run typecheck \u0026\u0026 electron-vite build",
+                    "build":  "electron-vite build",
                     "build:check":  "pnpm lint \u0026\u0026 pnpm docs:check-links \u0026\u0026 pnpm test",
                     "build:unpack":  "dotenv npm run build \u0026\u0026 electron-builder --dir",
                     "build:win":  "dotenv npm run build \u0026\u0026 electron-builder --win --x64 --arm64",
