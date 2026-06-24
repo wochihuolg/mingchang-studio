@@ -1,4 +1,4 @@
-import * as z from 'zod'
+﻿import * as z from 'zod'
 
 // ---- Per-channel-type config schemas ----
 
@@ -10,6 +10,19 @@ export const TelegramChannelConfigSchema = z.object({
 
 export type TelegramChannelConfig = z.infer<typeof TelegramChannelConfigSchema>
 
+export const QQChannelConfigSchema = z.object({
+  type: z.literal('qq'),
+  app_id: z.string(),
+  client_secret: z.string(),
+  allowed_chat_ids: z.array(z.string()).default([])
+})
+
+export type QQChannelConfig = z.infer<typeof QQChannelConfigSchema>
+
+export const WeChatChannelConfigSchema = z.object({
+  type: z.literal('wechat'),
+  token_path: z.string(),
+  allowed_chat_ids: z.array(z.string()).default([])
 })
 
 export type WeChatChannelConfig = z.infer<typeof WeChatChannelConfigSchema>

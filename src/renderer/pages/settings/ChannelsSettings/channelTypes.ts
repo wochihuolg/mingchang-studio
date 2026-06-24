@@ -1,4 +1,4 @@
-export type AvailableChannel = {
+﻿export type AvailableChannel = {
   type: 'telegram' | 'qq' | 'wechat' | 'discord' | 'slack'
   name: string
   titleKey: string
@@ -8,7 +8,6 @@ export type AvailableChannel = {
 }
 
 export const AVAILABLE_CHANNELS: AvailableChannel[] = [
-  {
   {
     type: 'telegram',
     name: 'Telegram',

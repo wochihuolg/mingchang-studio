@@ -1,4 +1,4 @@
-import type { TokenUsageData } from '@cherrystudio/analytics-client'
+﻿import type { TokenUsageData } from '@cherrystudio/analytics-client'
 import { electronAPI } from '@electron-toolkit/preload'
 import type { SpanContext } from '@opentelemetry/api'
 import type {
@@ -514,7 +514,7 @@ const api = {
   },
   settings: {
     // NOTE: misplaced API, kept here as an interim home. `openSettings` opens the
-    // Settings *window* — a navigation/feature concern, NOT a window-control primitive —
+    // Settings *window* 鈥?a navigation/feature concern, NOT a window-control primitive 鈥?
     // yet it was historically grouped under `windowManager`. It is parked under `settings`
     // so it stops leaking into the window domain, but the underlying `SettingsWindow_Open`
     // IPC is still legacy (not on IpcApi). FOLLOW-UP: migrate it onto a proper settings /
@@ -543,22 +543,6 @@ const api = {
     },
     hasCredentials: (channelId: string): Promise<{ exists: boolean; userId?: string }> =>
       ipcRenderer.invoke(IpcChannel.WeChat_HasCredentials, channelId)
-  },
-    ): (() => void) => {
-      const listener = (
-        _event: Electron.IpcRendererEvent,
-        data: {
-          channelId: string
-          agentId: string
-          url: string
-          status: string
-          appId?: string
-          appSecret?: string
-        }
-      ) => {
-        callback(data)
-      }
-    }
   },
   channel: {
     onLog: (
@@ -701,7 +685,7 @@ const api = {
       return () => ipcRenderer.off(channel, listener)
     }
   },
-  // IpcApi RPC channel — generic forwarder; the typed facade lives in src/renderer/ipc
+  // IpcApi RPC channel 鈥?generic forwarder; the typed facade lives in src/renderer/ipc
   ipcApi,
   topic: {
     onAutoRenamed: (callback: (payload: { topicId: string }) => void) => {
@@ -718,7 +702,7 @@ const api = {
     }
   },
   ai: {
-    // ── Stream push listeners ──
+    // 鈹€鈹€ Stream push listeners 鈹€鈹€
     onStreamChunk: (callback: (data: StreamChunkPayload) => void) => {
       const listener = (_: Electron.IpcRendererEvent, data: StreamChunkPayload) => callback(data)
       ipcRenderer.on(IpcChannel.Ai_StreamChunk, listener)
@@ -735,7 +719,7 @@ const api = {
       return () => ipcRenderer.removeListener(IpcChannel.Ai_StreamError, listener)
     },
 
-    // ── Stream control ──
+    // 鈹€鈹€ Stream control 鈹€鈹€
     streamOpen: (req: AiStreamOpenRequest): Promise<AiStreamOpenResponse> =>
       ipcRenderer.invoke(IpcChannel.Ai_Stream_Open, req),
     streamAttach: (req: AiStreamAttachRequest): Promise<AiStreamAttachResponse> =>
@@ -747,7 +731,7 @@ const api = {
     closeAgentSessionWarm: (req: AiAgentSessionWarmCloseRequest): Promise<void> =>
       ipcRenderer.invoke(IpcChannel.Ai_AgentSession_CloseWarm, req),
 
-    // ── Non-streaming operations ──
+    // 鈹€鈹€ Non-streaming operations 鈹€鈹€
     // All use uniqueModelId ("providerId::modelId") instead of separate providerId/modelId.
     generateText: (request: {
       assistantId?: string
@@ -795,7 +779,7 @@ const api = {
       throwOnError?: boolean
     }): Promise<Partial<Model>[]> => ipcRenderer.invoke(IpcChannel.Ai_ListModels, request),
 
-    // ── Tool approval (v6 ToolUIPart native flow) ──
+    // 鈹€鈹€ Tool approval (v6 ToolUIPart native flow) 鈹€鈹€
     toolApproval: {
       respond: (payload: {
         approvalId: string
@@ -815,7 +799,7 @@ const api = {
       streamId: string
       text: string
       targetLangCode: string
-      /** Optional — when present, main persists the translation onto this message's parts on stream success. */
+      /** Optional 鈥?when present, main persists the translation onto this message's parts on stream success. */
       messageId?: string
       sourceLangCode?: string
     }): Promise<{ streamId: string }> => ipcRenderer.invoke(IpcChannel.Ai_Translate_Open, req)
