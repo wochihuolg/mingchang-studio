@@ -100,10 +100,6 @@ export enum IpcChannel {
   WeChat_QrLogin = 'wechat:qr-login',
   WeChat_HasCredentials = 'wechat:has-credentials',
 
-  // Feishu channel
-  Feishu_QrLogin = 'feishu:qr-login',
-
-  // Channel status & logs
   Channel_StatusChange = 'channel:status-change',
   Channel_Log = 'channel:log',
   Channel_GetLogs = 'channel:get-logs',

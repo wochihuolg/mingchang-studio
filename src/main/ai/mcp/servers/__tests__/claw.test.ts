@@ -389,7 +389,6 @@ describe('ClawServer', () => {
         expect(parsed.supported_channel_types).toHaveLength(6)
         expect(parsed.supported_channel_types.map((t: any) => t.type)).toEqual([
           'telegram',
-          'feishu',
           'qq',
           'wechat',
           'discord',

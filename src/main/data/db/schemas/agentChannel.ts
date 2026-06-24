@@ -26,7 +26,7 @@ export const agentChannelTable = sqliteTable(
     index('agent_channel_agent_id_idx').on(t.agentId),
     index('agent_channel_type_idx').on(t.type),
     index('agent_channel_session_id_idx').on(t.sessionId),
-    check('agent_channel_type_check', sql`${t.type} IN ('telegram', 'feishu', 'qq', 'wechat', 'discord', 'slack')`),
+    check('agent_channel_type_check', sql`${t.type} IN ('telegram', 'qq', 'wechat', 'discord', 'slack')`),
     check(
       'agent_channel_permission_mode_check',
       sql`${t.permissionMode} IS NULL OR ${t.permissionMode} IN ('default', 'acceptEdits', 'bypassPermissions', 'plan')`

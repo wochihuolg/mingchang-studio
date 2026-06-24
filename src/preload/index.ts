@@ -544,16 +544,6 @@ const api = {
     hasCredentials: (channelId: string): Promise<{ exists: boolean; userId?: string }> =>
       ipcRenderer.invoke(IpcChannel.WeChat_HasCredentials, channelId)
   },
-  feishu: {
-    onQrLogin: (
-      callback: (data: {
-        channelId: string
-        agentId: string
-        url: string
-        status: string
-        appId?: string
-        appSecret?: string
-      }) => void
     ): (() => void) => {
       const listener = (
         _event: Electron.IpcRendererEvent,
@@ -568,8 +558,6 @@ const api = {
       ) => {
         callback(data)
       }
-      ipcRenderer.on(IpcChannel.Feishu_QrLogin, listener)
-      return () => ipcRenderer.off(IpcChannel.Feishu_QrLogin, listener)
     }
   },
   channel: {

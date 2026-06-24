@@ -38,7 +38,6 @@ export function registerAdapterFactory<T extends AgentChannelType>(type: T, fact
  */
 const adapterImportMap: Record<AgentChannelType, () => Promise<unknown>> = {
   discord: () => import('./adapters/discord/DiscordAdapter'),
-  feishu: () => import('./adapters/feishu/FeishuAdapter'),
   qq: () => import('./adapters/qq/QqAdapter'),
   slack: () => import('./adapters/slack/SlackAdapter'),
   telegram: () => import('./adapters/telegram/TelegramAdapter'),

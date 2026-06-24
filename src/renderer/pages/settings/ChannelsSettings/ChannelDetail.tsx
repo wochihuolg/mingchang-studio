@@ -56,26 +56,7 @@ function getChannelSummary(channel: ChannelData): string {
   const parts: string[] = []
 
   switch (channel.type) {
-    case 'feishu': {
-      if (cfg.app_id) parts.push(truncateId(cfg.app_id as string))
-      const domain = cfg.domain as string
-      parts.push(domain === 'lark' ? 'Lark (International)' : 'Feishu (China)')
-      break
-    }
-    case 'telegram':
-      if (cfg.bot_token) parts.push(`Token: ${truncateId(cfg.bot_token as string)}`)
-      if (chatIds.length > 0) parts.push(`${chatIds.length} chat IDs`)
-      break
-    case 'qq':
-      if (cfg.app_id) parts.push(truncateId(cfg.app_id as string))
-      if (chatIds.length > 0) parts.push(`${chatIds.length} chat IDs`)
-      break
-    case 'discord': {
-      if (cfg.bot_token) parts.push(`Token: ${truncateId(cfg.bot_token as string)}`)
-      const channelIds = (cfg.allowed_channel_ids as string[]) ?? []
-      if (channelIds.length > 0) parts.push(`${channelIds.length} channel IDs`)
-      break
-    }
+
     case 'slack': {
       if (cfg.bot_token) parts.push(`Token: ${truncateId(cfg.bot_token as string)}`)
       const slackChannelIds = (cfg.allowed_channel_ids as string[]) ?? []

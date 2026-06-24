@@ -115,12 +115,6 @@ const CHANNEL_CONFIG_SCHEMAS: Record<string, { required: string[]; optional: str
     optional: ['allowed_chat_ids'],
     description: 'Telegram Bot. Get bot_token from @BotFather.'
   },
-  feishu: {
-    required: [],
-    optional: ['app_id', 'app_secret', 'encrypt_key', 'verification_token', 'allowed_chat_ids', 'domain'],
-    description:
-      'Feishu/Lark bot. If app_id and app_secret are omitted, a QR code is returned for the user to scan with Feishu to auto-create a bot app and obtain credentials. domain defaults to "feishu" (use "lark" for international).'
-  },
   qq: {
     required: ['app_id', 'client_secret'],
     optional: ['allowed_chat_ids'],
@@ -166,7 +160,7 @@ const CHANNEL_CONFIG_SCHEMAS: Record<string, { required: string[]; optional: str
 const CONFIG_TOOL: Tool = {
   name: 'config',
   description:
-    "Inspect and manage your own agent configuration. Use 'status' to see current channels, model, and supported adapter types. Use 'rename' to change your display name. Use 'add_channel', 'update_channel', 'remove_channel', or 'reconnect_channel' to manage IM channel connections. Use 'reconnect_channel' when a WeChat or Feishu channel needs to re-scan a QR code (e.g. session expired or initial setup failed). Use 'complete_bootstrap' to mark the onboarding ritual as done. Use 'reset_bootstrap' to re-run the onboarding in the next session.",
+    "Inspect and manage your own agent configuration. Use 'status' to see current channels, model, and supported adapter types. Use 'rename' to change your display name. Use 'add_channel', 'update_channel', 'remove_channel', or 'reconnect_channel' to manage IM channel connections. Use 'reconnect_channel' when a WeChat channel needs to re-scan a QR code (e.g. session expired or initial setup failed). Use 'complete_bootstrap' to mark the onboarding ritual as done. Use 'reset_bootstrap' to re-run the onboarding in the next session.",
   inputSchema: {
     type: 'object',
     properties: {
@@ -186,7 +180,7 @@ const CONFIG_TOOL: Tool = {
       },
       type: {
         type: 'string',
-        enum: ['telegram', 'feishu', 'qq', 'wechat', 'discord', 'slack'],
+        enum: ['telegram', 'qq', 'wechat', 'discord', 'slack'],
         description: "Channel adapter type (required for 'add_channel')"
       },
       name: {
@@ -487,10 +481,10 @@ class ClawServer {
     const channelType = type as ChannelConfig['type']
     const config = ChannelConfigSchema.parse({ type: channelType, ...cfg })
 
-    // For channels that use QR-based setup (WeChat login, Feishu app registration),
+    // For channels that use QR-based setup (WeChat login, app registration),
     // connect is blocking (waits for QR scan), so run sync in background
     // and wait only for the QR URL to return it to the agent.
-    const needsQr = type === 'wechat' || (type === 'feishu' && !cfg.app_id && !cfg.app_secret)
+    const needsQr = type === 'wechat'
 
     if (needsQr) {
       const newChannel = await channelService.createChannel({
@@ -513,11 +507,11 @@ class ClawServer {
         })
       })
 
-      const channelLabel = type === 'wechat' ? 'WeChat' : 'Feishu'
+      const channelLabel = 'WeChat'
       const scanHint =
         type === 'wechat'
           ? 'scan with WeChat to log in'
-          : 'scan with Feishu to create a bot app and obtain credentials automatically'
+          : 'scan QR code to authenticate automatically'
 
       try {
         const qrUrl = await qrPromise
@@ -627,7 +621,7 @@ class ClawServer {
     const channel = await channelService.getChannel(channelId)
     if (!channel) throw new McpError(ErrorCode.InvalidParams, `Channel "${channelId}" not found`)
 
-    const needsQr = channel.type === 'wechat' || (channel.type === 'feishu' && !channel.config.app_id)
+    const needsQr = channel.type === 'wechat'
 
     const channelManager = application.get('ChannelManager')
     if (!needsQr) {
@@ -647,7 +641,7 @@ class ClawServer {
       })
     })
 
-    const channelLabel = channel.type === 'wechat' ? 'WeChat' : 'Feishu'
+    const channelLabel = 'WeChat'
 
     try {
       const qrUrl = await qrPromise

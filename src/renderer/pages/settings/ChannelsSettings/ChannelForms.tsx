@@ -10,7 +10,6 @@ import {
   SelectTrigger,
   SelectValue
 } from '@cherrystudio/ui'
-import type { FeishuChannelConfig, FeishuDomain, PermissionMode } from '@renderer/types'
 import { QRCodeSVG } from 'qrcode.react'
 import type { ReactNode } from 'react'
 import { type FC, useCallback, useEffect, useState } from 'react'
@@ -208,137 +207,8 @@ export const TelegramForm: FC<ChannelFormProps> = ({ channel, onConfigChange }) 
   )
 }
 
-const FeishuDomainSelector: FC<ChannelFormProps> = ({ channel, onConfigChange }) => {
-  const { t } = useTranslation()
-  const cfg = channel.config
-  return (
-    <div>
-      <label className="mb-1 block font-medium text-xs">{t('agent.cherryClaw.channels.feishu.domain')}</label>
-      <Select
-        value={(cfg.domain as FeishuDomain) ?? 'feishu'}
-        onValueChange={(value) => onConfigChange({ config: { ...cfg, domain: value as FeishuDomain } })}>
-        <SelectTrigger size="sm" className="w-full">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="feishu">{t('agent.cherryClaw.channels.feishu.domainFeishu')}</SelectItem>
-          <SelectItem value="lark">{t('agent.cherryClaw.channels.feishu.domainLark')}</SelectItem>
-        </SelectContent>
-      </Select>
-    </div>
-  )
-}
 
-type FeishuStatus = 'idle' | 'pending' | 'confirmed' | 'expired' | 'disconnected'
 
-export const FeishuForm: FC<ChannelFormProps> = ({ channel, onConfigChange }) => {
-  const { t } = useTranslation()
-  const cfg = channel.config as FeishuChannelConfig
-  const hasCredentials = !!(cfg.app_id && cfg.app_secret)
-  const [qrUrl, setQrUrl] = useState<string | null>(null)
-  const [status, setStatus] = useState<FeishuStatus>(hasCredentials ? 'confirmed' : 'idle')
-
-  useEffect(() => {
-    const cleanup = window.api.feishu.onQrLogin((data) => {
-      if (data.channelId !== channel.id) return
-      if (data.status === 'confirmed') {
-        setQrUrl(null)
-        setStatus('confirmed')
-        // Credentials are saved by main process (saveCredentialsAndReconnect).
-        // ChannelDetail will reload data on statusChange → connected.
-      } else if (data.status === 'expired') {
-        setQrUrl(null)
-        setStatus('expired')
-      } else if (data.url) {
-        setQrUrl(data.url)
-        setStatus('pending')
-      }
-    })
-    return cleanup
-  }, [channel.id])
-
-  return (
-    <div className="flex flex-col gap-3">
-      {!hasCredentials && (
-        <div className="flex items-center gap-2">
-          {status === 'pending' && (
-            <span className="text-blue-400 text-xs">{t('agent.cherryClaw.channels.feishu.qrHint')}</span>
-          )}
-          {status === 'expired' && (
-            <>
-              <span className="inline-block h-2 w-2 rounded-full bg-red-500" />
-              <span className="text-red-500 text-xs">{t('agent.cherryClaw.channels.feishu.qrExpired')}</span>
-            </>
-          )}
-          {status === 'idle' && (
-            <span className="text-blue-400 text-xs">{t('agent.cherryClaw.channels.feishu.loginHint')}</span>
-          )}
-        </div>
-      )}
-      {hasCredentials && (
-        <div className="flex items-center gap-2">
-          <span className="inline-block h-2 w-2 rounded-full bg-green-500" />
-          <span className="text-green-600 text-xs">{t('agent.cherryClaw.channels.feishu.connected')}</span>
-        </div>
-      )}
-      <ChannelFieldsForm
-        channel={channel}
-        onConfigChange={onConfigChange}
-        fields={[
-          {
-            key: 'app_id',
-            label: t('agent.cherryClaw.channels.feishu.appId'),
-            placeholder: t('agent.cherryClaw.channels.feishu.appIdPlaceholder')
-          },
-          {
-            key: 'app_secret',
-            label: t('agent.cherryClaw.channels.feishu.appSecret'),
-            placeholder: t('agent.cherryClaw.channels.feishu.appSecretPlaceholder'),
-            secret: true
-          },
-          {
-            key: 'encrypt_key',
-            label: t('agent.cherryClaw.channels.feishu.encryptKey'),
-            placeholder: t('agent.cherryClaw.channels.feishu.encryptKeyPlaceholder'),
-            secret: true
-          },
-          {
-            key: 'verification_token',
-            label: t('agent.cherryClaw.channels.feishu.verificationToken'),
-            placeholder: t('agent.cherryClaw.channels.feishu.verificationTokenPlaceholder'),
-            secret: true
-          }
-        ]}
-        extraContent={<FeishuDomainSelector channel={channel} onConfigChange={onConfigChange} />}
-        chatIds={{
-          label: t('agent.cherryClaw.channels.feishu.chatIds'),
-          placeholder: t('agent.cherryClaw.channels.feishu.chatIdsPlaceholder'),
-          hint: t('agent.cherryClaw.channels.feishu.chatIdsHint')
-        }}
-      />
-
-      <Dialog
-        open={!!qrUrl}
-        onOpenChange={(open) => {
-          if (open) return
-          setQrUrl(null)
-          if (status === 'pending') setStatus('idle')
-        }}>
-        <DialogContent className="max-w-90">
-          <DialogHeader>
-            <DialogTitle>{t('agent.cherryClaw.channels.feishu.qrTitle')}</DialogTitle>
-          </DialogHeader>
-          <div className="flex flex-col items-center gap-4 py-4">
-            {qrUrl && <QRCodeSVG value={qrUrl} size={240} level="M" />}
-            <span className="text-center text-muted-foreground text-xs">
-              {t('agent.cherryClaw.channels.feishu.qrScanHint')}
-            </span>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </div>
-  )
-}
 
 export const DiscordForm: FC<ChannelFormProps> = ({ channel, onConfigChange }) => {
   const { t } = useTranslation()
@@ -524,8 +394,6 @@ export const getFormForType = (type: string) => {
   switch (type) {
     case 'telegram':
       return TelegramForm
-    case 'feishu':
-      return FeishuForm
     case 'qq':
       return QQForm
     case 'discord':
