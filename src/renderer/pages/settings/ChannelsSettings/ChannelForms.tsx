@@ -1,4 +1,4 @@
-import {
+﻿import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -19,7 +19,7 @@ import type { ChannelData } from './channelTypes'
 
 // --------------- Permission mode ---------------
 
-const PERMISSION_MODE_OPTIONS: Array<{ value: PermissionMode | ''; labelKey: string }> = [
+const PERMISSION_MODE_OPTIONS: Array<{ value: AgentPermissionMode | ''; labelKey: string }> = [
   { value: '', labelKey: 'agent.cherryClaw.channels.security.inheritFromAgent' },
   { value: 'default', labelKey: 'agent.settings.tooling.permissionMode.default.title' },
   { value: 'acceptEdits', labelKey: 'agent.settings.tooling.permissionMode.acceptEdits.title' },
@@ -61,7 +61,7 @@ type ChannelFieldsFormProps = ChannelFormProps & {
 
 // --------------- Shared form components ---------------
 
-const ChannelPermissionMode: FC<ChannelFormProps> = ({ channel, onConfigChange }) => {
+const ChannelAgentPermissionMode: FC<ChannelFormProps> = ({ channel, onConfigChange }) => {
   const { t } = useTranslation()
   return (
     <div className="flex flex-col gap-1">
@@ -70,7 +70,7 @@ const ChannelPermissionMode: FC<ChannelFormProps> = ({ channel, onConfigChange }
         value={channel.permissionMode ?? INHERIT_PERMISSION_MODE_VALUE}
         onValueChange={(value) =>
           onConfigChange({
-            permissionMode: value === INHERIT_PERMISSION_MODE_VALUE ? undefined : (value as PermissionMode)
+            permissionMode: value === INHERIT_PERMISSION_MODE_VALUE ? undefined : (value as AgentPermissionMode)
           })
         }>
         <SelectTrigger size="sm" className="w-full">
@@ -177,7 +177,7 @@ const ChannelFieldsForm: FC<ChannelFieldsFormProps> = ({
           )}
         </div>
       </div>
-      <ChannelPermissionMode channel={channel} onConfigChange={onConfigChange} />
+      <ChannelAgentPermissionMode channel={channel} onConfigChange={onConfigChange} />
     </div>
   )
 }
@@ -331,7 +331,7 @@ export const WeChatForm: FC<ChannelFormProps & { onRemove?: () => void }> = ({ c
         )}
       </div>
 
-      <ChannelPermissionMode channel={channel} onConfigChange={onConfigChange} />
+      <ChannelAgentPermissionMode channel={channel} onConfigChange={onConfigChange} />
 
       <Dialog
         open={!!qrUrl}

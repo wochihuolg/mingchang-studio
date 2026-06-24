@@ -1,4 +1,4 @@
-import { application } from '@application'
+﻿import { application } from '@application'
 import { agentChannelService as channelService } from '@data/services/AgentChannelService'
 import { loggerService } from '@logger'
 import { BaseService, DependsOn, Injectable, Phase, ServicePhase } from '@main/core/lifecycle'
@@ -27,12 +27,12 @@ export function registerAdapterFactory<T extends AgentChannelType>(type: T, fact
   // A factory is always stored under, and looked up by, its own channel type
   // (see `connectChannelFromRow`), so the row handed to it is guaranteed to be
   // this variant. That invariant is the one thing the type system can't see, so
-  // we narrow the row to the factory's variant here — nothing wider is asserted.
+  // we narrow the row to the factory's variant here 鈥?nothing wider is asserted.
   adapterFactories.set(type, (channel, agentId) => factory(channel as Extract<ChannelRow, { type: T }>, agentId))
 }
 
 /**
- * Lazy-load map: adapter type → dynamic import of the adapter module.
+ * Lazy-load map: adapter type 鈫?dynamic import of the adapter module.
  * Each module registers itself via `registerAdapterFactory()` as a side effect.
  * This avoids eagerly importing all 6 heavy adapter modules at startup.
  */
@@ -254,9 +254,9 @@ export class ChannelManager extends BaseService {
     const channel = await channelService.getChannel(channelId)
     if (!channel) return
 
-    const config = channel.config as ChannelConfig & Record<string, unknown>
+    const config = channel.config as any & Record<string, unknown>
     await channelService.updateChannel(channelId, {
-      config: { ...config, app_id: creds.appId, app_secret: creds.appSecret } as ChannelConfig
+      config: { ...config, app_id: creds.appId, app_secret: creds.appSecret } as any
     })
 
     logger.info('Saved QR registration credentials, reconnecting', { agentId, channelId })
@@ -306,7 +306,7 @@ export class ChannelManager extends BaseService {
             error: err instanceof Error ? err.message : String(err)
           })
           adapter
-            .sendMessage(msg.chatId, '⚠️ An error occurred while processing your message. Please try again later.')
+            .sendMessage(msg.chatId, '鈿狅笍 An error occurred while processing your message. Please try again later.')
             .catch(() => {})
         })
       })
@@ -320,7 +320,7 @@ export class ChannelManager extends BaseService {
             error: err instanceof Error ? err.message : String(err)
           })
           adapter
-            .sendMessage(cmd.chatId, '⚠️ An error occurred while processing the command. Please try again later.')
+            .sendMessage(cmd.chatId, '鈿狅笍 An error occurred while processing the command. Please try again later.')
             .catch(() => {})
         })
       })
