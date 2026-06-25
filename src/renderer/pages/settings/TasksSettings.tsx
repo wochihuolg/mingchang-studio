@@ -891,7 +891,7 @@ const CreateForm: FC<{
 
 const TasksSettings: FC = () => {
   const { t } = useTranslation()
-  const { channels: rawChannels = [] } = useChannels()
+  const { channels: rawChannels } = useChannels()
   const { createTask } = useCreateTask()
   const { updateTask } = useUpdateTask()
   const { deleteTask } = useDeleteTask()

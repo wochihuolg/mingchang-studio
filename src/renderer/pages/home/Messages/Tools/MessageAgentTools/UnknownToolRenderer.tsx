@@ -45,7 +45,7 @@ function extractMcpText(output: unknown): string | null {
  * Uses shared ArgsTable for consistent styling with MCP tools
  */
 export function UnknownToolRenderer({
-  toolName = '',
+  toolName,
   input,
   output
 }: UnknownToolProps): NonNullable<CollapseProps['items']>[number] {

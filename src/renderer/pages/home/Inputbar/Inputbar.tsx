@@ -162,7 +162,6 @@ const InputbarInner: FC<InputbarInnerProps> = ({ setActiveTopic, topic, actionsR
   const [isMultiSelectMode] = useCache('chat.multi_select_mode')
 
   const canAddImageFile = true
-  const canAddTextFile = true
 
   const supportedExts = useMemo(() => {
     return [...imageExts, ...documentExts, ...textExts]

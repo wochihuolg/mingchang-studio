@@ -4,7 +4,6 @@ import { loggerService } from '@logger'
 import { BaseService, DependsOn, Injectable, Phase, ServicePhase } from '@main/core/lifecycle'
 import { WindowType } from '@main/core/window/types'
 import type { AgentChannelEntity as ChannelRow, AgentChannelType } from '@shared/data/api/schemas/agentChannels'
-import type { ChannelConfig } from '@shared/data/types/channel'
 import { IpcChannel } from '@shared/IpcChannel'
 
 import type { ChannelAdapter } from './ChannelAdapter'
@@ -256,7 +255,7 @@ export class ChannelManager extends BaseService {
 
     const config = channel.config as any & Record<string, unknown>
     await channelService.updateChannel(channelId, {
-      config: { ...config, app_id: creds.appId, app_secret: creds.appSecret } as any
+      config: { ...config, app_id: creds.appId, app_secret: creds.appSecret }
     })
 
     logger.info('Saved QR registration credentials, reconnecting', { agentId, channelId })

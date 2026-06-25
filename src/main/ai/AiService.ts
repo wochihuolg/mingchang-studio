@@ -650,7 +650,7 @@ export class AiService extends BaseService {
     logger.info('rerank started', { assistantId: request.assistantId, count: request.documents.length })
     const signal = request.requestOptions?.signal
 
-    const { sdkConfig, options = {} } = await this.buildAgentParamsFor(request, signal)
+    const { sdkConfig, options } = await this.buildAgentParamsFor(request, signal)
     const headers = options.headers
       ? (Object.fromEntries(Object.entries(options.headers).filter(([, value]) => value !== undefined)) as Record<
           string,

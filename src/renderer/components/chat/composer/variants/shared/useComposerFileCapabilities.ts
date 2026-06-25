@@ -15,14 +15,6 @@ interface ComposerFileCapabilitiesArgs {
   fallbackModel: Model | undefined
 }
 
-const EMPTY_MODELS: Model[] = []
-
-function isMultiModelArgs(
-  input: Model | undefined | ComposerFileCapabilitiesArgs
-): input is ComposerFileCapabilitiesArgs {
-  return !!input && Array.isArray((input as ComposerFileCapabilitiesArgs).models)
-}
-
 /**
  * Derives which file kinds the composer accepts from the active model(s).
  *
@@ -36,9 +28,9 @@ function isMultiModelArgs(
 export function useComposerFileCapabilities(model: Model | undefined): ComposerFileCapabilities
 export function useComposerFileCapabilities(args: ComposerFileCapabilitiesArgs): ComposerFileCapabilities
 export function useComposerFileCapabilities(
-  input: Model | undefined | ComposerFileCapabilitiesArgs
+  _: Model | undefined | ComposerFileCapabilitiesArgs
 ): ComposerFileCapabilities {
-  const { models, fallbackModel } = isMultiModelArgs(input) ? input : { models: EMPTY_MODELS, fallbackModel: input }
+  void _
 
   // Always allow image + document + text uploads for all models.
   // Capability-based gating was unreliable with third-party API proxies.

@@ -44,7 +44,7 @@ function extractMcpText(output: unknown): string | null {
  * Fallback renderer for unknown tool types
  * Uses shared ArgsTable for consistent styling with MCP tools
  */
-export function UnknownToolRenderer({ toolName = '', input, output }: UnknownToolProps): ToolDisclosureItem {
+export function UnknownToolRenderer({ toolName, input, output }: UnknownToolProps): ToolDisclosureItem {
   const { t } = useTranslation()
 
   const getToolDescription = (name: string) => {
