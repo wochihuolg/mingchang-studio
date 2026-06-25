@@ -1,5 +1,5 @@
 /**
- * Cherry Studio Data API - Barrel Exports
+ * DY-TEAM-CHANG Data API - Barrel Exports
  *
  * Exports common infrastructure types for the Data API system.
  * Domain-specific DTOs should be imported directly from their schema files.

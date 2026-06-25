@@ -19,7 +19,8 @@ import {
   MessageSquare,
   MousePointerClick,
   NotepadText,
-  Palette
+  Palette,
+  Settings
 } from 'lucide-react'
 
 /**
@@ -118,6 +119,11 @@ export const SIDEBAR_APPS: readonly SidebarApp[] = [
     id: 'store',
     icon: Library,
     routePrefix: '/app/library'
+  },
+  {
+    id: 'settings',
+    icon: Settings,
+    routePrefix: '/app/settings'
   },
   {
     id: 'mini_app',

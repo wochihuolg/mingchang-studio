@@ -488,7 +488,7 @@ describe('useMiniAppPopup', () => {
         })
       })
 
-      expect(mockWindowApi.openPath).toHaveBeenCalledWith('/Applications/Cherry Studio/resources/releases.html')
+      expect(mockWindowApi.openPath).toHaveBeenCalledWith('/Applications/DY-TEAM-CHANG/resources/releases.html')
       expect(mockWindowApi.openWebsite).not.toHaveBeenCalled()
       expect(mockTabs.openTab).not.toHaveBeenCalled()
       expect(getKeepAlive()).toEqual([])

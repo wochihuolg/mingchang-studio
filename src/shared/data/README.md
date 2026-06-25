@@ -1,6 +1,6 @@
 # Shared Data Types
 
-This directory contains shared type definitions for Cherry Studio's data layer.
+This directory contains shared type definitions for DY-TEAM-CHANG's data layer.
 
 ## Documentation
 

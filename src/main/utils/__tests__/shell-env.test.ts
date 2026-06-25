@@ -159,9 +159,9 @@ describe('shell-env – Windows registry PATH', () => {
     expect(env.Path).toContain('C:\\PlainPath')
   })
 
-  // -- Cherry Studio bin appended -------------------------------------------
+  // -- DY-TEAM-CHANG bin appended -------------------------------------------
 
-  it('should append Cherry Studio bin directory to PATH', async () => {
+  it('should append DY-TEAM-CHANG bin directory to PATH', async () => {
     vi.mocked(execFileSync).mockImplementation((_cmd, args) => {
       const keyPath = (args as string[])[1]
       if (keyPath === HKLM_KEY) return regOutput(keyPath, 'C:\\Windows')
@@ -170,7 +170,7 @@ describe('shell-env – Windows registry PATH', () => {
 
     const env = await refreshShellEnv()
 
-    expect(env.Path).toContain('.cherrystudio')
+    expect(env.Path).toContain('.dyteamchang')
   })
 
   // -- does not spawn cmd.exe -----------------------------------------------

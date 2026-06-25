@@ -37,14 +37,14 @@ describe('MessageWebSearchToolTitle', () => {
             toolCallId: 'tool-call-1',
             tool: { id: 'web-search', name: 'web_search', type: 'builtin' },
             status: 'done',
-            arguments: { query: 'Cherry Studio' },
+            arguments: { query: 'DY-TEAM-CHANG' },
             response: []
           } as NormalToolResponse
         }
       />
     )
 
-    expect(screen.getByText('Cherry Studio')).toBeInTheDocument()
+    expect(screen.getByText('DY-TEAM-CHANG')).toBeInTheDocument()
     expect(screen.getByText('No search results found')).toBeInTheDocument()
     expect(screen.queryByRole('button')).not.toBeInTheDocument()
   })
@@ -58,7 +58,7 @@ describe('MessageWebSearchToolTitle', () => {
             toolCallId: 'tool-call-1',
             tool: { id: 'web-search', name: 'web_search', type: 'builtin' },
             status: 'invoking',
-            arguments: { query: 'Cherry Studio' },
+            arguments: { query: 'DY-TEAM-CHANG' },
             response: []
           } as NormalToolResponse
         }
@@ -67,7 +67,7 @@ describe('MessageWebSearchToolTitle', () => {
 
     const searchingText = screen.getByText('message.searching').closest('span')
     expect(searchingText).toHaveClass('py-0.5 text-[13px] leading-5')
-    expect(screen.getByText('Cherry Studio')).toHaveClass('truncate')
+    expect(screen.getByText('DY-TEAM-CHANG')).toHaveClass('truncate')
   })
 
   it('shows the query in the header and renders each result as a link with favicon and domain', async () => {
@@ -79,9 +79,9 @@ describe('MessageWebSearchToolTitle', () => {
             toolCallId: 'tool-call-1',
             tool: { id: 'web-search', name: 'web_search', type: 'builtin' },
             status: 'done',
-            arguments: { query: 'Cherry Studio' },
+            arguments: { query: 'DY-TEAM-CHANG' },
             response: [
-              { id: 1, title: 'Cherry Studio', url: 'https://www.cherry-ai.com/blog', content: 'Cherry Studio' }
+              { id: 1, title: 'DY-TEAM-CHANG', url: 'https://www.cherry-ai.com/blog', content: 'DY-TEAM-CHANG' }
             ]
           } as NormalToolResponse
         }
@@ -90,7 +90,7 @@ describe('MessageWebSearchToolTitle', () => {
 
     // Header shows the query + the result count (collapse body is not rendered yet).
     const header = screen.getByRole('button')
-    expect(within(header).getByText('Cherry Studio')).toBeInTheDocument()
+    expect(within(header).getByText('DY-TEAM-CHANG')).toBeInTheDocument()
     expect(within(header).getByText('1 search results')).toBeInTheDocument()
 
     fireEvent.click(header)

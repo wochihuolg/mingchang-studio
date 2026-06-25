@@ -66,7 +66,7 @@ describe('useWebSearchProviderCheck', () => {
 
     expect(ipcRequestMock).toHaveBeenCalledWith('web_search.search_keywords', {
       providerId: 'tavily',
-      keywords: ['Cherry Studio']
+      keywords: ['DY-TEAM-CHANG']
     })
     expect(toastSuccessMock).toHaveBeenCalledWith('settings.tool.websearch.check_success')
   })

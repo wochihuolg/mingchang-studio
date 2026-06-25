@@ -75,10 +75,10 @@ export function buildApp() {
         mapJsonSchema: { zod: z.toJSONSchema },
         documentation: {
           info: {
-            title: 'Cherry Studio API',
+            title: 'DY-TEAM-CHANG API',
             version: '1.0.0',
             description:
-              'OpenAI- and Anthropic-compatible HTTP API for Cherry Studio, plus Cherry-specific endpoints (models, knowledge bases)'
+              'OpenAI- and Anthropic-compatible HTTP API for DY-TEAM-CHANG, plus Cherry-specific endpoints (models, knowledge bases)'
           }
         }
       })
@@ -116,7 +116,7 @@ export function buildApp() {
     .get(
       '/',
       () => ({
-        name: 'Cherry Studio API',
+        name: 'DY-TEAM-CHANG API',
         version: '1.0.0',
         endpoints: {
           health: 'GET /health',

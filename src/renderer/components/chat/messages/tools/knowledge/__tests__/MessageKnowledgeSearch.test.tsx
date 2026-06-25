@@ -34,8 +34,8 @@ describe('MessageKnowledgeSearchToolTitle', () => {
             toolCallId: 'tool-call-1',
             tool: { id: 'knowledge-search', name: 'kb_search', type: 'builtin' },
             status: 'done',
-            arguments: { query: 'Cherry Studio', baseIds: ['base-1'] },
-            response: [{ id: 1, content: 'Cherry Studio', score: 0.9 }]
+            arguments: { query: 'DY-TEAM-CHANG', baseIds: ['base-1'] },
+            response: [{ id: 1, content: 'DY-TEAM-CHANG', score: 0.9 }]
           } as NormalToolResponse
         }
       />
@@ -49,7 +49,7 @@ describe('MessageKnowledgeSearchToolTitle', () => {
 
     fireEvent.click(screen.getByRole('button'))
     expect(screen.getByTestId('collapse-content-tool-call-1')).toHaveClass('rounded-xl bg-muted px-4 py-3')
-    expect(await screen.findByText('Cherry Studio')).toBeInTheDocument()
+    expect(await screen.findByText('DY-TEAM-CHANG')).toBeInTheDocument()
   })
 
   it('uses compact text while searching', () => {
@@ -61,7 +61,7 @@ describe('MessageKnowledgeSearchToolTitle', () => {
             toolCallId: 'tool-call-1',
             tool: { id: 'knowledge-search', name: 'kb_search', type: 'builtin' },
             status: 'invoking',
-            arguments: { query: 'Cherry Studio', baseIds: ['base-1'] },
+            arguments: { query: 'DY-TEAM-CHANG', baseIds: ['base-1'] },
             response: []
           } as NormalToolResponse
         }
@@ -71,6 +71,6 @@ describe('MessageKnowledgeSearchToolTitle', () => {
     const searchingText = screen.getByText('Searching').closest('span')
     expect(searchingText).toHaveClass('py-0.5 text-[13px] leading-5')
     expect(searchingText).not.toHaveClass('text-sm')
-    expect(screen.getByText('Cherry Studio')).toHaveClass('truncate')
+    expect(screen.getByText('DY-TEAM-CHANG')).toHaveClass('truncate')
   })
 })

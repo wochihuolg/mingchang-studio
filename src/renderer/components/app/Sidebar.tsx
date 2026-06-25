@@ -16,6 +16,7 @@ import {
   MousePointerClick,
   NotepadText,
   Palette,
+  Settings,
   Sparkle
 } from 'lucide-react'
 import type { Ref } from 'react'
@@ -28,7 +29,7 @@ import { Sidebar as UISidebar } from '../Sidebar'
 import { getSidebarDisplayWidth, getSidebarLayout, normalizeSidebarWidth } from '../Sidebar/constants'
 import type { SidebarMenuItem, SidebarUser } from '../Sidebar/types'
 
-const APP_LOGO = <img src={AppLogo} alt="Cherry Studio" className="h-9 w-9 rounded-lg" draggable={false} />
+const APP_LOGO = <img src={AppLogo} alt="DY-TEAM-CHANG" className="h-9 w-9 rounded-lg" draggable={false} />
 const noop = () => {}
 
 const routePrefixMap: Record<SidebarFavoriteType, string> = {
@@ -42,7 +43,8 @@ const routePrefixMap: Record<SidebarFavoriteType, string> = {
   files: '/app/files',
   code_tools: '/app/code',
   notes: '/app/notes',
-  openclaw: '/app/openclaw'
+  openclaw: '/app/openclaw',
+  settings: '/settings'
 }
 
 const iconMap: Record<SidebarFavoriteType, SidebarMenuItem['icon']> = {
@@ -56,7 +58,8 @@ const iconMap: Record<SidebarFavoriteType, SidebarMenuItem['icon']> = {
   files: Folder,
   code_tools: Code,
   notes: NotepadText,
-  openclaw: OpenClawSidebarIcon
+  openclaw: OpenClawSidebarIcon,
+  settings: Settings
 }
 
 function getMenuPath(favorite: SidebarFavoriteType): string {
@@ -168,7 +171,7 @@ export default function Sidebar({ ref }: { ref?: Ref<HTMLDivElement | null> }) {
   const sidebarProps = {
     activeItem,
     items,
-    title: 'Cherry Studio',
+    title: `DY-TEAM-CHANG ${__APP_VERSION__ || ''}`.trim(),
     logo: APP_LOGO,
     user: sidebarUser,
     dockedTabs: [],

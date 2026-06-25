@@ -165,7 +165,7 @@ export class TopicNamingService {
    * DB (`session.name`) rather than `topics.name` and uses the session's own
    * model for summarization.
    *
-   * @param sessionId  Cherry Studio session id.
+   * @param sessionId  DY-TEAM-CHANG session id.
    * @param userText   Plain text of the user turn (already in memory —
    *                   callers pass it from `req.userMessageParts` to avoid a
    *                   DB round-trip).

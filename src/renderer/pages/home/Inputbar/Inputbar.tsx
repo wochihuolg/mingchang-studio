@@ -1,7 +1,6 @@
 import { cacheService } from '@data/CacheService'
 import { usePreference } from '@data/hooks/usePreference'
 import { loggerService } from '@logger'
-import { isGenerateImageModel, isGenerateImageModels, isVisionModel, isVisionModels } from '@renderer/config/models'
 import { useCache } from '@renderer/data/hooks/useCache'
 import { useCommandHandler } from '@renderer/hooks/command'
 import { useAssistant } from '@renderer/hooks/useAssistant'
@@ -157,48 +156,17 @@ const InputbarInner: FC<InputbarInnerProps> = ({ setActiveTopic, topic, actionsR
     setIsSending(false)
   }, [topic.id])
   const loading = isPending || isSending || awaitingApproval
-  const isVisionAssistant = useMemo(() => (model ? isVisionModel(model) : false), [model])
-  const isGenerateImageAssistant = useMemo(() => (model ? isGenerateImageModel(model) : false), [model])
+  // All models support image upload — capability-based gating is unreliable
+  // with third-party API proxies.
   const { setTimeoutTimer } = useTimer()
   const [isMultiSelectMode] = useCache('chat.multi_select_mode')
 
-  const isVisionSupported = useMemo(
-    () =>
-      (mentionedModels.length > 0 && isVisionModels(mentionedModels)) ||
-      (mentionedModels.length === 0 && isVisionAssistant),
-    [mentionedModels, isVisionAssistant]
-  )
-
-  const isGenerateImageSupported = useMemo(
-    () =>
-      (mentionedModels.length > 0 && isGenerateImageModels(mentionedModels)) ||
-      (mentionedModels.length === 0 && isGenerateImageAssistant),
-    [mentionedModels, isGenerateImageAssistant]
-  )
-
-  const canAddImageFile = useMemo(() => {
-    return isVisionSupported || isGenerateImageSupported
-  }, [isGenerateImageSupported, isVisionSupported])
-
-  const canAddTextFile = useMemo(() => {
-    return isVisionSupported || (!isVisionSupported && !isGenerateImageSupported)
-  }, [isGenerateImageSupported, isVisionSupported])
+  const canAddImageFile = true
+  const canAddTextFile = true
 
   const supportedExts = useMemo(() => {
-    if (canAddImageFile && canAddTextFile) {
-      return [...imageExts, ...documentExts, ...textExts]
-    }
-
-    if (canAddImageFile) {
-      return [...imageExts]
-    }
-
-    if (canAddTextFile) {
-      return [...documentExts, ...textExts]
-    }
-
-    return []
-  }, [canAddImageFile, canAddTextFile])
+    return [...imageExts, ...documentExts, ...textExts]
+  }, [])
 
   useEffect(() => {
     setCouldAddImageFile(canAddImageFile)

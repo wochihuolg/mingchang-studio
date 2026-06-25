@@ -51,8 +51,8 @@ interface ProgressData {
 }
 
 class BackupManager {
-  private tempDir = path.join(app.getPath('temp'), 'cherry-studio', 'backup', 'temp')
-  private backupDir = path.join(app.getPath('temp'), 'cherry-studio', 'backup')
+  private tempDir = path.join(app.getPath('temp'), 'dy-team-chang', 'backup', 'temp')
+  private backupDir = path.join(app.getPath('temp'), 'dy-team-chang', 'backup')
 
   // Cached instance to avoid recreating
   private s3Storage: S3Storage | null = null
@@ -162,7 +162,7 @@ class BackupManager {
     return {
       version: 6,
       timestamp: Date.now(),
-      appName: 'Cherry Studio',
+      appName: 'DY-TEAM-CHANG',
       appVersion: app.getVersion(),
       platform: process.platform,
       arch: process.arch
@@ -468,7 +468,7 @@ class BackupManager {
    * @returns Result from WebDAV upload operation
    */
   async backupToWebdav(_: Electron.IpcMainInvokeEvent, webdavConfig: WebDavConfig) {
-    const filename = webdavConfig.fileName || 'cherry-studio.backup.zip'
+    const filename = webdavConfig.fileName || 'dy-team-chang.backup.zip'
     const backupedFilePath = await this.backup(_, filename, undefined, webdavConfig.skipBackupFile)
     const webdavClient = this.getWebDavInstance(webdavConfig)
     try {
@@ -505,7 +505,7 @@ class BackupManager {
       .toISOString()
       .replace(/[-:T.Z]/g, '')
       .slice(0, 14)
-    const filename = s3Config.fileName || `cherry-studio.backup.${deviceName}.${timestamp}.zip`
+    const filename = s3Config.fileName || `dy-team-chang.backup.${deviceName}.${timestamp}.zip`
 
     logger.debug(`[backupToS3] Starting S3 backup to ${filename}`)
 
@@ -593,9 +593,9 @@ class BackupManager {
       const metadataPath = path.join(this.tempDir, 'metadata.json')
       const metadata = await fs.readJson(metadataPath)
 
-      // Validate appName to ensure backup is from Cherry Studio
-      if (metadata.appName !== 'Cherry Studio') {
-        throw new Error('This backup file is not from Cherry Studio and cannot be restored')
+      // Validate appName to ensure backup is from DY-TEAM-CHANG
+      if (metadata.appName !== 'DY-TEAM-CHANG') {
+        throw new Error('This backup file is not from DY-TEAM-CHANG and cannot be restored')
       }
 
       // Warn about cross-platform restore
@@ -757,7 +757,7 @@ class BackupManager {
    * @returns Result from restore operation
    */
   async restoreFromWebdav(_: Electron.IpcMainInvokeEvent, webdavConfig: WebDavConfig) {
-    const filename = webdavConfig.fileName || 'cherry-studio.backup.zip'
+    const filename = webdavConfig.fileName || 'dy-team-chang.backup.zip'
     const webdavClient = this.getWebDavInstance(webdavConfig)
     try {
       const retrievedFile = await webdavClient.getFileContents(filename)
@@ -792,7 +792,7 @@ class BackupManager {
    * @returns Result from restore operation
    */
   async restoreFromS3(_: Electron.IpcMainInvokeEvent, s3Config: S3Config) {
-    const filename = s3Config.fileName || 'cherry-studio.backup.zip'
+    const filename = s3Config.fileName || 'dy-team-chang.backup.zip'
 
     logger.debug(`Starting restore from S3: ${filename}`)
 
@@ -1253,8 +1253,8 @@ class BackupManager {
       .replace(/[-:T.Z]/g, '')
       .slice(0, 14)
 
-    const fileName = `cherry-studio.${timestamp}.zip`
-    const tempPath = path.join(app.getPath('temp'), 'cherry-studio', 'lan-transfer')
+    const fileName = `dy-team-chang.${timestamp}.zip`
+    const tempPath = path.join(app.getPath('temp'), 'dy-team-chang', 'lan-transfer')
     const targetPath = destinationPath || tempPath
 
     // Ensure temp directory exists
@@ -1274,7 +1274,7 @@ class BackupManager {
   async deleteLanTransferBackup(_: Electron.IpcMainInvokeEvent, filePath: string): Promise<boolean> {
     try {
       // Security check: only allow deletion within temp directory
-      const tempBase = path.normalize(path.join(app.getPath('temp'), 'cherry-studio', 'lan-transfer'))
+      const tempBase = path.normalize(path.join(app.getPath('temp'), 'dy-team-chang', 'lan-transfer'))
       const resolvedPath = path.normalize(path.resolve(filePath))
 
       // Use normalized paths with trailing separator to prevent prefix attacks (e.g., /temp-evil)

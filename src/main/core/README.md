@@ -15,7 +15,7 @@ Core services are things the app needs to function as an Electron application â€
 
 ## What does NOT belong here
 
-- Anything tied to what Cherry Studio specifically does (AI, conversations, models, topics, assistants, knowledge bases, MCP, etc.)
+- Anything tied to what DY-TEAM-CHANG specifically does (AI, conversations, models, topics, assistants, knowledge bases, MCP, etc.)
 - Business data schemas, repositories, or services
 - UI-specific logic
 - Feature-specific utilities

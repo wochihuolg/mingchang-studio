@@ -39,7 +39,7 @@ describe('KnowledgeIndexStore integration (real libsql)', () => {
   it('round-trips a chunked document: rebuild → list (slice invariant) → search across all modes', async () => {
     const text =
       '# Vector search\n\n' +
-      'Cherry Studio builds a per-base index for retrieval. '.repeat(4) +
+      'DY-TEAM-CHANG builds a per-base index for retrieval. '.repeat(4) +
       '\n\n## Embeddings\n\n' +
       'Each chunk maps to one embedding vector for cosine search. '.repeat(4)
 

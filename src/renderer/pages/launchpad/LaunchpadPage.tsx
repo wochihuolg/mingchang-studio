@@ -156,6 +156,10 @@ export default function LaunchpadPage() {
   )
 
   const appMenuItems = SIDEBAR_ICON_ORDER.flatMap((icon) => {
+    // Only show items that are in the default sidebar favorites
+    if (icon === 'mini_app' || icon === 'openclaw') return []
+    const bgColor = APP_ICON_BACKGROUNDS[icon]
+    if (!bgColor) return []
     const Icon = SIDEBAR_ICON_COMPONENTS[icon]
     if (!Icon || !getSidebarMenuPath(icon, defaultPaintingProvider)) return []
 

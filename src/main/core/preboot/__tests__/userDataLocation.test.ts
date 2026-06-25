@@ -159,11 +159,11 @@ afterEach(() => {
 describe('getNormalizedExecutablePath', () => {
   it('macOS: returns app.getPath("exe") verbatim', async () => {
     stubConstants({ isLinux: false, isWin: false, isPortable: false })
-    stubElectron({ exePath: '/Applications/Cherry Studio.app/Contents/MacOS/Cherry Studio' })
+    stubElectron({ exePath: '/Applications/DY-TEAM-CHANG.app/Contents/MacOS/DY-TEAM-CHANG' })
     stubBootConfig()
     stubFs()
     const { getNormalizedExecutablePath } = await loadModule()
-    expect(getNormalizedExecutablePath()).toBe('/Applications/Cherry Studio.app/Contents/MacOS/Cherry Studio')
+    expect(getNormalizedExecutablePath()).toBe('/Applications/DY-TEAM-CHANG.app/Contents/MacOS/DY-TEAM-CHANG')
   })
 
   it('Linux without APPIMAGE env: returns app.getPath("exe") verbatim', async () => {
@@ -189,11 +189,11 @@ describe('getNormalizedExecutablePath', () => {
 
   it('Windows non-portable: returns app.getPath("exe") verbatim', async () => {
     stubConstants({ isLinux: false, isWin: true, isPortable: false })
-    stubElectron({ exePath: 'C:\\Program Files\\Cherry Studio\\CherryStudio.exe' })
+    stubElectron({ exePath: 'C:\\Program Files\\DY-TEAM-CHANG\\CherryStudio.exe' })
     stubBootConfig()
     stubFs()
     const { getNormalizedExecutablePath } = await loadModule()
-    expect(getNormalizedExecutablePath()).toBe('C:\\Program Files\\Cherry Studio\\CherryStudio.exe')
+    expect(getNormalizedExecutablePath()).toBe('C:\\Program Files\\DY-TEAM-CHANG\\CherryStudio.exe')
   })
 
   it('Windows portable: returns PORTABLE_EXECUTABLE_DIR/cherry-studio-portable.exe', async () => {

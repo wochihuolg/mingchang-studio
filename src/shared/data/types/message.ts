@@ -174,10 +174,10 @@ export interface CherryUIMessageMetadata {
   stats?: MessageStats
 }
 
-/** Cherry Studio's UIMessage with custom metadata and data part types. */
+/** DY-TEAM-CHANG's UIMessage with custom metadata and data part types. */
 export type CherryUIMessage = UIMessage<CherryUIMessageMetadata, CherryDataPartTypes>
 
-/** Cherry Studio's UIMessageChunk — inferred from CherryUIMessage. */
+/** DY-TEAM-CHANG's UIMessageChunk — inferred from CherryUIMessage. */
 export type CherryUIMessageChunk = InferUIMessageChunk<CherryUIMessage>
 
 // Re-export AI SDK part types for convenience

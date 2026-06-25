@@ -19,7 +19,7 @@ import {
 } from '../../streamManager/persistence/PersistenceBackend'
 
 export interface AgentSessionMessageBackendOptions {
-  /** Cherry Studio agent-session id. */
+  /** DY-TEAM-CHANG agent-session id. */
   sessionId: string
   /** Model id used for this assistant message. */
   modelId?: UniqueModelId

@@ -820,7 +820,7 @@
     },
     "authHeaderText": "認証ヘッダーで使用：",
     "configuration": "設定",
-    "description": "OpenAI 互換の HTTP API を通じて Cherry Studio の AI 機能を公開します",
+    "description": "OpenAI 互換の HTTP API を通じて DY-TEAM-CHANG の AI 機能を公開します",
     "documentation": {
       "title": "API ドキュメント"
     },
@@ -3653,12 +3653,12 @@
       "select_other_provider": "他のプロバイダーを選択",
       "setup_hint": "ベストな体験のために、少なくとも1つのプロバイダーを設定してください",
       "subtitle": "CherryINでトップクラスのAIサービスをお楽しみください",
-      "title": "Cherry Studioへようこそ"
+      "title": "DY-TEAM-CHANGへようこそ"
     }
   },
   "openclaw": {
     "checking_installation": "OpenClawのインストールを確認しています...",
-    "description": "Cherry Studio プロバイダーを OpenClaw Gateway と統合し、Claude Code、Qwen-Coder などの AI コーディングエージェントを有効にします。",
+    "description": "DY-TEAM-CHANG プロバイダーを OpenClaw Gateway と統合し、Claude Code、Qwen-Coder などの AI コーディングエージェントを有効にします。",
     "error": {
       "select_provider_model": "プロバイダーとモデルをまず選択してください"
     },
@@ -3696,7 +3696,7 @@
       "title": "モデル設定"
     },
     "node_missing": {
-      "description": "OpenClawにはNode.js/npmが必要です。まずNode.jsをインストールしてから、Cherry Studioを再起動してください。",
+      "description": "OpenClawにはNode.js/npmが必要です。まずNode.jsをインストールしてから、DY-TEAM-CHANGを再起動してください。",
       "download_button": "Node.jsをダウンロード",
       "hint": "macOS: brew install node | Windows: nodejs.org から LTS 版をダウンロード",
       "title": "Node.jsが必要"
@@ -4565,7 +4565,7 @@
           },
           "description": {
             "0": "テキスト選択ツールは、<strong>アクセシビリティー権限</strong>が必要です。",
-            "1": "「<strong>設定に移動</strong>」をクリックし、後で表示される権限要求ポップアップで「<strong>システム設定を開く</strong>」ボタンをクリックします。その後、表示されるアプリケーションリストで「<strong>Cherry Studio</strong>」を見つけ、権限スイッチをオンにしてください。",
+            "1": "「<strong>設定に移動</strong>」をクリックし、後で表示される権限要求ポップアップで「<strong>システム設定を開く</strong>」ボタンをクリックします。その後、表示されるアプリケーションリストで「<strong>DY-TEAM-CHANG</strong>」を見つけ、権限スイッチをオンにしてください。",
             "2": "設定が完了したら、テキスト選択ツールを再起動してください。"
           },
           "title": "アクセシビリティー権限"
@@ -4589,7 +4589,7 @@
         "wayland_checklist_subtitle": "Wayland エクスペリエンスを最適化するために、次の条件が満たされていることを確認してください：",
         "wayland_description": "Waylandセッションで実行中です。システムの制約により、一部のデスクトップ環境ではツールバーが選択したテキストに追随せず、画面中央にのみ表示される場合があります。完全な体験のためにはX11セッションへの切り替えを推奨します。",
         "wayland_title": "Waylandセッション通知",
-        "xwayland_fail": "有効ではありません。`--ozone-platform=x11` フラグを付けて Cherry Studio を起動してください。",
+        "xwayland_fail": "有効ではありません。`--ozone-platform=x11` フラグを付けて DY-TEAM-CHANG を起動してください。",
         "xwayland_label": "XWaylandモード:",
         "xwayland_pass": "有効"
       },
@@ -4876,7 +4876,7 @@
           "button": "転送を開始",
           "connected": "接続済み",
           "connection_failed": "接続に失敗しました",
-          "content": "コンピューターとスマートフォンが同じネットワークに接続されていることを確認し、ローカルエリアネットワーク転送を使用してください。Cherry Studioアプリを開き、このQRコードをスキャンしてください。",
+          "content": "コンピューターとスマートフォンが同じネットワークに接続されていることを確認し、ローカルエリアネットワーク転送を使用してください。DY-TEAM-CHANGアプリを開き、このQRコードをスキャンしてください。",
           "device_list_title": "ローカルネットワークデバイス",
           "discovered_devices": "発見されたデバイス",
           "error": {
@@ -4902,14 +4902,14 @@
             "test_message_received": "{{device}}からpongを受信しました",
             "test_message_sent": "hello world テストペイロードを送信しました"
           },
-          "idle_hint": "スキャンが一時停止されました。スキャンを開始して、LAN上のCherry Studioピアを検索してください。",
+          "idle_hint": "スキャンが一時停止されました。スキャンを開始して、LAN上のDY-TEAM-CHANGピアを検索してください。",
           "ip_addresses": "IPアドレス",
           "last_seen": "最後に見たのは{{time}}",
           "metadata": "メタデータ",
-          "no_connection_warning": "Cherry StudioモバイルでLAN転送を開いてください",
+          "no_connection_warning": "DY-TEAM-CHANGモバイルでLAN転送を開いてください",
           "no_devices": "まだLANピアが見つかっていません",
           "scan_devices": "デバイスをスキャン",
-          "scanning_hint": "ローカルネットワークでCherry Studioのピアをスキャンしています...",
+          "scanning_hint": "ローカルネットワークでDY-TEAM-CHANGのピアをスキャンしています...",
           "send_file": "ファイルを送信",
           "status": {
             "completed": "転送完了",
@@ -5727,7 +5727,7 @@
       },
       "oauth": {
         "callback": {
-          "message": "このページを閉じてCherry Studioに戻ることができます",
+          "message": "このページを閉じてDY-TEAM-CHANGに戻ることができます",
           "title": "認証成功"
         }
       },

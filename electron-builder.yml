@@ -1,5 +1,5 @@
-﻿appId: com.mingchang.app
-productName: mingchang
+﻿appId: com.dyteamchang.app
+productName: DY-TEAM-CHANG
 electronLanguages:
   - zh-CN
   - zh-TW
@@ -14,9 +14,9 @@ directories:
   buildResources: build
 
 protocols:
-  - name: mingchang
+  - name: dy-team-chang
     schemes:
-    - mingchang
+    - dy-team-chang
 files:
   - "**/*"
   - "!**/{.vscode,.yarn,.yarn-lock,.github,.cursorrules,.prettierrc}"
@@ -71,16 +71,32 @@ files:
   - "resources/**/*" # include all files in resources, and unpack them from asar for runtime access
 asarUnpack:
   - resources/**
-  - "**/*.{metal,exp,lib}"
+  - "**/*.{metal,exp,lib,node,dll,dylib,so}"
   - "node_modules/@img/sharp-*/**"
-  - "node_modules/@anthropic-ai/claude-agent-sdk-*/**" # native CLI binary must live on disk to be spawned
+  - "node_modules/@anthropic-ai/claude-agent-sdk-*/**"
+  - "node_modules/@cherrystudio/ripgrep/vendor/**"
+  - "node_modules/@napi-rs/**"
+  - "node_modules/@libsql/**"
+  - "node_modules/selection-hook/build/**"
+  - "node_modules/registry-js/build/**"
+  - "node_modules/@paymoapp/electron-shutdown-handler/build/**"
+  - "node_modules/font-list/**"
+  - "node_modules/whatwg-url/**"
+  - "node_modules/whatwg-encoding/**"
+  - "node_modules/tr46/**"
+  - "node_modules/punycode/**"
+  - "node_modules/iconv-lite/**"
+  - "node_modules/ms/**"
+  - "node_modules/html-encoding-sniffer/**"
+  - "node_modules/safer-buffer/**"
+  - "node_modules/es-errors/**"
 extraResources:
   - from: "migrations/sqlite-drizzle"
     to: "migrations/sqlite-drizzle"
   - from: "packages/provider-registry/data"
     to: "provider-registry"
 win:
-  executableName: mingchang
+  executableName: dy-team-chang
   artifactName: ${productName}-${version}-${arch}-setup.${ext}
   target:
     - target: nsis
@@ -88,6 +104,7 @@ win:
   signtoolOptions:
     sign: scripts/win-sign.js
   verifyUpdateCodeSignature: false
+  signAndEditExecutable: false
 nsis:
   artifactName: ${productName}-${version}-${arch}-setup.${ext}
   shortcutName: ${productName}
@@ -117,7 +134,7 @@ dmg:
   writeUpdateInfo: false
 linux:
   artifactName: ${productName}-${version}-${arch}.${ext}
-  executableName: mingchang
+  executableName: dy-team-chang
   target:
     - target: AppImage
     - target: deb
@@ -126,10 +143,10 @@ linux:
   category: Utility
   desktop:
     entry:
-      name: mingchang
-      StartupWMClass: mingchang
+      name: dy-team-chang
+      StartupWMClass: dy-team-chang
   mimeTypes:
-    - x-scheme-handler/mingchang
+    - x-scheme-handler/dy-team-chang
 rpm:
   # Workaround for electron build issue on rpm package:
   # https://github.com/electron/forge/issues/3594
@@ -146,7 +163,7 @@ artifactBuildCompleted: scripts/artifact-build-completed.js
 releaseInfo:
   releaseNotes: |
     <!--LANG:en-->
-    mingchang 1.9.7 - Model Support & Bug Fixes
+    dy-team-chang 1.9.7 - Model Support & Bug Fixes
 
     ✨ New Features
     - [Models] Added support for grok-build-0.1 capabilities (reasoning, tool use, vision)
@@ -165,7 +182,7 @@ releaseInfo:
     - [Providers] Fixed AIHubMix reasoning effort configuration not working properly
 
     <!--LANG:zh-CN-->
-    mingchang 1.9.7 - 模型支持与错误修复
+    dy-team-chang 1.9.7 - 模型支持与错误修复
 
     ✨ 新功能
     - [模型] 支持 grok-build-0.1 模型能力（推理、工具调用、视觉）

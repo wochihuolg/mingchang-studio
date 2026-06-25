@@ -1,4 +1,4 @@
-name: Build mingchang (Windows)
+name: Build dy-team-chang (Windows)
 
 on:
   workflow_dispatch:
@@ -53,7 +53,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
         with:
-          name: mingchang-windows-${{ github.run_id }}
+          name: dy-team-chang-windows-${{ github.run_id }}
           path: dist/*.exe
           retention-days: 7
           compression-level: 8

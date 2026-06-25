@@ -79,7 +79,7 @@ export const isTextToImageModel = (model: Model): boolean =>
 export const isNonChatModel = (model: Model): boolean =>
   isEmbeddingModel(model) ||
   isRerankModel(model) ||
-  isGenerateImageModel(model) ||
+  isTextToImageModel(model) ||
   isGenerateVideoModel(model) ||
   isGenerateAudioModel(model) ||
   isTextToSpeechModel(model) ||

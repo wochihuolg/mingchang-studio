@@ -13,7 +13,6 @@ import {
   HardDrive,
   Info,
   Package,
-  PackageCheck,
   PictureInPicture2,
   Radio,
   Search,
@@ -110,14 +109,6 @@ const SettingsPage: FC = () => {
                 label={t('settings.integrations.title')}
                 active={isActive('/settings/integrations')}
                 onClick={() => go('/settings/integrations')}
-              />
-              <MenuItem
-                className={settingsSubmenuItemClassName}
-                labelClassName={settingsSubmenuItemLabelClassName}
-                icon={<PackageCheck />}
-                label={t('settings.plugins.title')}
-                active={isActive('/settings/plugins')}
-                onClick={() => go('/settings/plugins')}
               />
               <MenuDivider className={settingsSubmenuDividerClassName} />
               <div className={settingsSubmenuSectionTitleClassName}>{t('settings.menuGroups.appSettings')}</div>

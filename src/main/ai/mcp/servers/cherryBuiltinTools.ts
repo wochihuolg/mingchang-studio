@@ -1,5 +1,5 @@
 /**
- * In-process MCP server exposing Cherry Studio's builtin tools to Claude Code.
+ * In-process MCP server exposing DY-TEAM-CHANG's builtin tools to Claude Code.
  *
  * Wraps the same `webLookup` / `knowledgeLookup` cores the AI-SDK builtin tools
  * use, so Claude Code's web search/fetch and knowledge-base tools run identical

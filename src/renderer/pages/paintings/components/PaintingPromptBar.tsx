@@ -7,7 +7,7 @@ import SendMessageButton from '@renderer/pages/home/Inputbar/SendMessageButton'
 import type { FileEntry } from '@shared/data/types/file/fileEntry'
 import type { FilePath } from '@shared/types/file/common'
 import { toSafeFileUrl } from '@shared/utils/file/urlUtil'
-import { isEditImageModel } from '@shared/utils/model'
+import { isGenerateImageModel } from '@shared/utils/model'
 import { Plus, X } from 'lucide-react'
 import type { ChangeEvent, ClipboardEvent, DragEvent, FC, KeyboardEventHandler, ReactNode } from 'react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -105,7 +105,7 @@ const PaintingPromptBar: FC<PaintingPromptBarProps> = ({
   const acceptsImageInput = useMemo(() => {
     if (!painting.model) return false
     const current = models.find((model) => model.apiModelId === painting.model)
-    return current ? isEditImageModel(current) : false
+    return current ? isGenerateImageModel(current) : false
   }, [models, painting.model])
 
   const appendFiles = useCallback(

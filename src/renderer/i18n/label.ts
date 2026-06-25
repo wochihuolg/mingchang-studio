@@ -195,7 +195,8 @@ const sidebarIconKeyMap = {
   files: 'files.title',
   code_tools: 'code.title',
   notes: 'notes.title',
-  openclaw: 'openclaw.title'
+  openclaw: 'openclaw.title',
+  settings: 'settings.title'
 } as const
 
 export const getSidebarIconLabelKey = (key: string): string => {
@@ -216,7 +217,8 @@ const sidebarFavoriteKeyMap = {
   files: 'files.title',
   code_tools: 'code.title',
   notes: 'notes.title',
-  openclaw: 'openclaw.title'
+  openclaw: 'openclaw.title',
+  settings: 'settings.title'
 } as const
 export const getSidebarFavoriteLabelKey = (key: string): string => {
   return getLabelKey(sidebarFavoriteKeyMap, key)

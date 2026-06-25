@@ -56,7 +56,7 @@ export const syncMcpRouterServers = async (token: string): Promise<McpRouterSync
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
         'HTTP-Referer': 'https://cherry-ai.com',
-        'X-Title': 'Cherry Studio'
+        'X-Title': 'DY-TEAM-CHANG'
       },
       body: JSON.stringify({})
     })

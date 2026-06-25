@@ -1,11 +1,11 @@
 {
-    "name": "mingchang",
+    "name": "dy-team-chang",
     "version": "2.0.0-dev",
     "private": true,
     "description": "A powerful AI assistant for producer.",
-    "desktopName": "mingchang.desktop",
+    "desktopName": "dy-team-chang.desktop",
     "main": "./out/main/index.js",
-    "author": "mingchang",
+    "author": "dy-team-chang",
     "homepage": "https://github.com/wochihuolg/cherry-studio",
     "engines": {
         "node": ">=24.11.1 <24.16.0"
@@ -105,7 +105,32 @@
         "graceful-fs": "4.2.11",
         "grammy": "^1.36.3",
         "gray-matter": "4.0.3",
-        "jsdom": "26.1.0",
+        "ms": "2.1.3",
+        "tr46": "5.1.1",
+        "whatwg-url": "14.1.1",
+        "punycode": "^2.3.1",
+        "iconv-lite": "^0.6.3",
+        "es-errors": "^1.3.0",
+        "math-intrinsics": "^1.1.0",
+        "gopd": "^1.2.0",
+        "call-bind": "^1.0.9",
+        "call-bound": "^1.0.4",
+        "dunder-proto": "^1.0.1",
+        "es-define-property": "^1.0.1",
+        "function-bind": "^1.1.2",
+        "get-proto": "^1.0.1",
+        "has-symbols": "^1.1.0",
+        "hasown": "^2.0.4",
+        "set-function-length": "^1.2.2",
+        "side-channel": "^1.1.1",
+        "side-channel-list": "^1.0.1",
+        "side-channel-map": "^1.0.1",
+        "side-channel-weakmap": "^1.0.2",
+        "call-bind-apply-helpers": "^1.0.2",
+        "define-properties": "^1.2.1",
+        "math-intrinsics": "^1.1.0",
+        "es-object-atoms": "1.1.2",
+        "get-intrinsic": "1.3.0",
         "node-stream-zip": "1.15.0",
         "officeparser": "4.2.0",
         "os-proxy-config": "1.1.2",
@@ -116,7 +141,8 @@
         "tesseract.js": "6.0.1",
         "turndown": "7.2.0",
         "ws": "^8.18.2",
-        "xxhash-wasm": "^1.1.0"
+        "xxhash-wasm": "^1.1.0",
+        "jsdom": "26.1.0"
     },
     "devDependencies": {
         "@agentic/exa": "^7.3.3",
@@ -497,3 +523,4 @@
         "@strongtz/win32-arm64-msvc": "0.4.7"
     }
 }
+

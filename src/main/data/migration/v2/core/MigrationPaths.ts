@@ -23,7 +23,7 @@ import { app } from 'electron'
 
 const logger = loggerService.withContext('MigrationPaths')
 
-const DB_NAME = 'cherrystudio.sqlite'
+const DB_NAME = 'dyteamchang.sqlite'
 const MIGRATIONS_BASE_PATH = 'migrations/sqlite-drizzle'
 
 /**
@@ -38,12 +38,12 @@ export interface MigrationPaths {
 
   /** Resolved v1 userData directory (accounts for legacy config.json custom path). */
   readonly userData: string
-  /** ~/.cherrystudio — cherry home directory. */
+  /** ~/.dyteamchang — DY-TEAM-CHANG home directory. */
   readonly cherryHome: string
 
   // ── Derived from userData (pre-computed, consumers use directly) ──
 
-  /** {userData}/cherrystudio.sqlite */
+  /** {userData}/dyteamchang.sqlite */
   readonly databaseFile: string
   /** {userData}/Data/KnowledgeBase */
   readonly knowledgeBaseDir: string

@@ -35,7 +35,7 @@ export function parseCurrentVersion(versionOutput: string): string | null {
  * Parse the update status from `openclaw update status` output.
  * Returns the latest version string if a **binary** update is available, otherwise null.
  *
- * Cherry Studio installs OpenClaw as a standalone binary, so we only care about
+ * DY-TEAM-CHANG installs OpenClaw as a standalone binary, so we only care about
  * binary-channel updates. npm/pkg-channel updates are ignored because they
  * require a different upgrade path (`npm update -g`).
  *
@@ -785,7 +785,7 @@ export class OpenClawService extends BaseService {
   }
 
   /**
-   * Sync Cherry Studio Provider configuration to OpenClaw
+   * Sync DY-TEAM-CHANG Provider configuration to OpenClaw
    */
   public async syncProviderConfig(provider: Provider, primaryModel: Model): Promise<OperationResult> {
     try {

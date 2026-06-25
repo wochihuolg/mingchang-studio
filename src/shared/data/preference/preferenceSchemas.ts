@@ -747,7 +747,7 @@ export const DefaultPreferences: PreferenceSchemas = {
     'topic.tab.show_time': false,
     'ui.custom_css': '',
     'ui.navbar.position': 'top',
-    'ui.sidebar.favorites': ['assistants', 'agents', 'paintings', 'translate', 'store'],
+    'ui.sidebar.favorites': ['assistants', 'paintings', 'settings'],
     'ui.theme_mode': PreferenceTypes.ThemeMode.system,
     'ui.theme_user.code_font_family': '',
     'ui.theme_user.color_primary': '#00b96b',

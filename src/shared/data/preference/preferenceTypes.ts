@@ -86,6 +86,7 @@ export type SidebarFavorite =
   | 'assistants'
   | 'agents'
   | 'store'
+  | 'settings'
   | 'paintings'
   | 'translate'
   | 'mini_app'

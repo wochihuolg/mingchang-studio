@@ -1,4 +1,3 @@
-import { isGenerateImageModel, isGenerateImageModels, isVisionModel, isVisionModels } from '@renderer/config/models'
 import type { Model } from '@shared/data/types/model'
 import { documentExts, imageExts, textExts } from '@shared/utils/file/fileExtensions'
 import { useMemo } from 'react'
@@ -28,9 +27,11 @@ function isMultiModelArgs(
  * Derives which file kinds the composer accepts from the active model(s).
  *
  * Agent passes a single resolved `model`; chat passes its mentioned `models` plus a
- * `fallbackModel` (the assistant model used when nothing is mentioned). Vision / image
- * support requires every mentioned model to qualify, or — with none mentioned — the
- * fallback model.
+ * `fallbackModel` (the assistant model used when nothing is mentioned).
+ *
+ * Note: image upload is now enabled for ALL models — we don't gate on capability
+ * labels because third-party API proxies may serve models without correct capability
+ * tags. The API endpoint itself is responsible for rejecting unsupported inputs.
  */
 export function useComposerFileCapabilities(model: Model | undefined): ComposerFileCapabilities
 export function useComposerFileCapabilities(args: ComposerFileCapabilitiesArgs): ComposerFileCapabilities
@@ -39,24 +40,14 @@ export function useComposerFileCapabilities(
 ): ComposerFileCapabilities {
   const { models, fallbackModel } = isMultiModelArgs(input) ? input : { models: EMPTY_MODELS, fallbackModel: input }
 
-  const isVisionSupported = useMemo(
-    () => (models.length > 0 ? isVisionModels(models) : fallbackModel ? isVisionModel(fallbackModel) : false),
-    [models, fallbackModel]
-  )
-  const isGenerateImageSupported = useMemo(
-    () =>
-      models.length > 0 ? isGenerateImageModels(models) : fallbackModel ? isGenerateImageModel(fallbackModel) : false,
-    [models, fallbackModel]
-  )
-  const canAddImageFile = isVisionSupported || isGenerateImageSupported
-  const canAddTextFile = isVisionSupported || (!isVisionSupported && !isGenerateImageSupported)
+  // Always allow image + document + text uploads for all models.
+  // Capability-based gating was unreliable with third-party API proxies.
+  const canAddImageFile = true
+  const canAddTextFile = true
 
   const supportedExts = useMemo(() => {
-    if (canAddImageFile && canAddTextFile) return [...imageExts, ...documentExts, ...textExts]
-    if (canAddImageFile) return [...imageExts]
-    if (canAddTextFile) return [...documentExts, ...textExts]
-    return []
-  }, [canAddImageFile, canAddTextFile])
+    return [...imageExts, ...documentExts, ...textExts]
+  }, [])
 
   return { canAddImageFile, canAddTextFile, supportedExts }
 }

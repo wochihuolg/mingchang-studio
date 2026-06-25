@@ -97,6 +97,9 @@ export default defineConfig({
     }
   },
   renderer: {
+    define: {
+      __APP_VERSION__: JSON.stringify(pkg.version)
+    },
     plugins: [
       tanstackRouter({
         target: 'react',

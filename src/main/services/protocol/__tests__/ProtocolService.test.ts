@@ -113,7 +113,7 @@ describe('ProtocolService', () => {
 
   it('registers the packaged protocol handler without dev arguments', async () => {
     setDefaultApp(false)
-    process.argv = ['Cherry Studio.exe']
+    process.argv = ['DY-TEAM-CHANG.exe']
 
     await (service as any).onInit()
 

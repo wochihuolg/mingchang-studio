@@ -1,7 +1,7 @@
 /**
- * Builds ClaudeCodeSettings from Cherry Studio's agent session configuration.
+ * Builds ClaudeCodeSettings from DY-TEAM-CHANG's agent session configuration.
  *
- * Maps Cherry Studio's internal data model (agent sessions, providers, MCP servers,
+ * Maps DY-TEAM-CHANG's internal data model (agent sessions, providers, MCP servers,
  * tool permissions, prompt builder) to ai-sdk-provider-claude-code's ClaudeCodeSettings.
  *
  * Usage:
@@ -191,7 +191,7 @@ async function buildAssistantContext(): Promise<string> {
 
   return [
     '## Current Environment',
-    `- App: Cherry Studio v${appVersion}`,
+    `- App: DY-TEAM-CHANG v${appVersion}`,
     `- OS: ${platform}`,
     `- Language: ${language}, Theme: ${theme}`,
     proxy ? `- Proxy: ${proxy}` : '- Proxy: none',
@@ -238,7 +238,7 @@ export interface ClaudeCodeSessionOptions {
 // ── Main builder ────────────────────────────────────────────────────
 
 /**
- * Build session-level ClaudeCodeSettings from Cherry Studio's agent session.
+ * Build session-level ClaudeCodeSettings from DY-TEAM-CHANG's agent session.
  */
 export async function buildClaudeCodeSessionSettings(
   session: AgentSessionEntity,
