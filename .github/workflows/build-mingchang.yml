@@ -52,15 +52,16 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          EXE_FILE=$(ls dist/*.exe 2>/dev/null | head -1)
-          if [ -z "$EXE_FILE" ]; then
+          EXE_FILES=$(ls dist/*.exe 2>/dev/null)
+          if [ -z "$EXE_FILES" ]; then
             echo "No EXE found in dist/, skipping Release creation"
             exit 0
           fi
           TAG_NAME="mingchang-${GITHUB_RUN_ID}"
-          echo "Creating release $TAG_NAME with $EXE_FILE"
+          echo "Creating release $TAG_NAME with files:"
+          echo "$EXE_FILES"
           gh release create "$TAG_NAME" \
             --title "Mingchang Studio v2.0.0-dev (Build ${GITHUB_RUN_ID})" \
             --notes "## Auto Build\n\n- Based on Cherry Studio\n- OpenAI compatible provider only\n- Build time: $(date -u '+%Y-%m-%d %H:%M UTC')\n- Build ID: ${GITHUB_RUN_ID}" \
             --prerelease \
-            "$EXE_FILE"
+            $EXE_FILES
